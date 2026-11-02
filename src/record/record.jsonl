@@ -1,0 +1,4 @@
+{"id": 1, "type": "Airline", "company_name": "Emerates"}
+{"type": "Flight", "client_id": 100, "airline_id": 1, "date": "2026-11-02", "start_city": "Johannesburg", "end_city": "London"}
+{"id": 100, "type": "Client", "name": "Test", "address_line_1": "", "address_line_2": "", "address_line_3": "", "city": "Test", "state": "", "zip_code": "", "country": "", "phone_number": "Test"}
+{"id": 101, "type": "Client", "name": "Abe Maduna", "address_line_1": "", "address_line_2": "", "address_line_3": "", "city": "Johannesburg", "state": "", "zip_code": "", "country": "", "phone_number": "+27832007335"}
