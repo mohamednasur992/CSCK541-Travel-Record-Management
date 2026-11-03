@@ -1,3 +1,4 @@
+"""Main entry point for the Specialist Travel Agent Record Management System."""
 import sys
 import os
 import atexit
@@ -13,6 +14,7 @@ from record.record import RecordManager
 from gui.main_window import MainApplicationWindow
 
 def main():
+    """Initialize the data manager and configure system exit hooks."""
     print("Initializing Specialist Travel Agent Record Management System...")
 
     # Check for and load existing records on startup

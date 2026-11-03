@@ -35,20 +35,20 @@ class RecordManager:
             print(f"Error saving records to file: {e}")
 
     # --- 1. CREATE OPERATIONS ---
-    
-    def add_client(self, client_id, name, address_1, address_2, address_3, city, state, zip_code, country, phone_number):
+
+    def add_client(self, client_id, name, email, phone_number, city, address, passport_number, nationality,
+                   emergency_contact):
         record = {
             "id": int(client_id),
             "type": "Client",
             "name": name,
-            "address_line_1": address_1,
-            "address_line_2": address_2,
-            "address_line_3": address_3,
+            "email": email,
+            "phone_number": phone_number,
             "city": city,
-            "state": state,
-            "zip_code": zip_code,
-            "country": country,
-            "phone_number": phone_number
+            "address": address,
+            "passport_number": passport_number,
+            "nationality": nationality,
+            "emergency_contact": emergency_contact
         }
         self.records.append(record)
         return record
@@ -105,16 +105,29 @@ class RecordManager:
 
     # --- 3. UPDATE OPERATIONS ---
 
-    def update_record(self, record_id, updated_data, record_type=None):
-        """Updates an existing record matching the ID and optional type."""
+    def update_record(self, record_id, updated_data, record_type=None, old_airline_id=None, old_date=None,
+                      old_start=None, old_end=None):
+        """Updates a specific record matching the ID and criteria precisely."""
         updated = False
         for r in self.records:
-            match_id = str(r.get("id")) == str(record_id) or str(r.get("client_id")) == str(record_id)
-            match_type = not record_type or r.get("type") == record_type
-
-            if match_id and match_type:
+            if record_type == "Flight" and r.get("type") == "Flight":
+                # Match the exact specific flight record using its full composite key
+                if (str(r.get("client_id")) == str(record_id) and
+                        (old_airline_id is None or str(r.get("airline_id")) == str(old_airline_id)) and
+                        (old_date is None or str(r.get("date")) == str(old_date)) and
+                        (old_start is None or str(r.get("start_city")) == str(old_start)) and
+                        (old_end is None or str(r.get("end_city")) == str(old_end))):
+                    r.update(updated_data)
+                    updated = True
+                    break  # Stop immediately after updating this exact row
+            elif record_type and r.get("type") == record_type and str(r.get("id")) == str(record_id):
                 r.update(updated_data)
                 updated = True
+                break
+            elif not record_type and str(r.get("id")) == str(record_id):
+                r.update(updated_data)
+                updated = True
+                break
 
         if updated:
             if hasattr(self, 'save_to_file'):
@@ -125,11 +138,10 @@ class RecordManager:
 
     # --- 4. DELETE OPERATIONS ---
 
-    def delete_record(self, record_id, record_type=None):
+    def delete_record(self, record_id, record_type=None, airline_id=None, date=None):
         """Deletes a record matching the given ID and type, enforcing referential integrity."""
         # 1. Referential Integrity Checks
         if record_type == "Client":
-            # Check if any flight booking uses this client's ID
             has_bookings = any(
                 str(r.get("client_id")) == str(record_id) and r.get("type") == "Flight" for r in self.records)
             if has_bookings:
@@ -137,7 +149,6 @@ class RecordManager:
                     f"Cannot delete Client (ID: {record_id}): Active flight bookings exist for this client.")
 
         elif record_type == "Airline":
-            # Check if any flight booking uses this airline's ID
             has_bookings = any(
                 str(r.get("airline_id")) == str(record_id) and r.get("type") == "Flight" for r in self.records)
             if has_bookings:
@@ -146,7 +157,22 @@ class RecordManager:
 
         # 2. Proceed with Deletion if checks pass
         initial_count = len(self.records)
-        if record_type:
+
+        if record_type == "Flight":
+            # Uniquely match the specific flight using client_id, airline_id, and date
+            def match_flight(r):
+                if r.get("type") != "Flight":
+                    return False
+                if str(r.get("client_id")) != str(record_id):
+                    return False
+                if airline_id is not None and str(r.get("airline_id")) != str(airline_id):
+                    return False
+                if date is not None and str(r.get("date")) != str(date):
+                    return False
+                return True
+
+            self.records = [r for r in self.records if not match_flight(r)]
+        elif record_type:
             self.records = [r for r in self.records if
                             not (str(r.get("id")) == str(record_id) and r.get("type") == record_type)]
         else:
