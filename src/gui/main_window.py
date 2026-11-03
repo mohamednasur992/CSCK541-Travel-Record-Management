@@ -43,7 +43,6 @@ class MainApplicationWindow:
 
         # Palette colors
         primary_color = "#1B365D"  # Deep Navy
-        accent_color = "#007A33"  # Travel Blue / Teal accent
         bg_color = "#F4F6F9"  # Soft off-white background
 
         self.root.configure(bg=bg_color)
@@ -63,7 +62,6 @@ class MainApplicationWindow:
     def load_logo(self):
         """Safely loads and resizes the logo image for the bottom left corner."""
         try:
-            # Look for logo in assets folder or current directory
             logo_path = "assets/logo.png"
             if not os.path.exists(logo_path):
                 logo_path = "logo.png"  # Fallback to root dir
@@ -81,7 +79,6 @@ class MainApplicationWindow:
         if self.logo_image:
             logo_label = ttk.Label(parent_frame, image=self.logo_image)
             logo_label.image = self.logo_image  # Keep reference
-            # Place it below the buttons using grid instead of pack
             logo_label.grid(row=11, column=0, columnspan=2, pady=(15, 0), sticky="w")
 
     def init_client_tab(self):
@@ -104,8 +101,7 @@ class MainApplicationWindow:
         self.client_search_var.trace("w", self.filter_client_table)
         search_entry = ttk.Entry(search_frame, textvariable=self.client_search_var, width=30)
         search_entry.pack(side="left", padx=5)
-        ttk.Button(search_frame, text="Clear Search", command=lambda: self.client_search_var.set("")).pack(side="left",
-                                                                                                           padx=5)
+        ttk.Button(search_frame, text="Clear Search", command=lambda: self.client_search_var.set("")).pack(side="left", padx=5)
 
         # Form Fields
         ttk.Label(form_frame, text="Client ID:").grid(row=0, column=0, sticky="w", pady=5)
@@ -132,29 +128,57 @@ class MainApplicationWindow:
         ttk.Button(btn_frame, text="Clear", command=self._clear_client_form).pack(side="left", padx=2)
         ttk.Button(btn_frame, text="Delete", command=self.on_delete_client).pack(side="left", padx=2)
 
-        # Place Logo at the bottom left of the form frame
         self.add_logo_to_frame(form_frame)
 
-        # Display Table (Treeview) with Type column added
-        columns = ("ID", "Type", "Name", "City", "Phone")
+        # Display Client Table (Treeview) with All 10 Columns
+        columns = (
+            "client_id",
+            "type",
+            "full_name",
+            "email",
+            "phone_number",
+            "city",
+            "address",
+            "passport_num",
+            "nationality",
+            "emergency_contact"
+        )
+
         self.client_tree = ttk.Treeview(display_frame, columns=columns, show="headings")
-        self.client_tree.heading("ID", text="Client ID")
-        self.client_tree.heading("Type", text="Type")
-        self.client_tree.heading("Name", text="Full Name")
-        self.client_tree.heading("City", text="City")
-        self.client_tree.heading("Phone", text="Phone Number")
 
-        self.client_tree.column("ID", width=80, anchor="center")
-        self.client_tree.column("Type", width=90, anchor="center")
-        self.client_tree.column("Name", width=180)
-        self.client_tree.column("City", width=150)
-        self.client_tree.column("Phone", width=130)
+        # Configure Column Headings
+        self.client_tree.heading("client_id", text="Client ID")
+        self.client_tree.heading("type", text="Type")
+        self.client_tree.heading("full_name", text="Full Name")
+        self.client_tree.heading("email", text="Email")
+        self.client_tree.heading("phone_number", text="Phone Number")
+        self.client_tree.heading("city", text="City")
+        self.client_tree.heading("address", text="Address")
+        self.client_tree.heading("passport_num", text="Passport/ID")
+        self.client_tree.heading("nationality", text="Nationality")
+        self.client_tree.heading("emergency_contact", text="Emergency Contact")
 
+        # Configure Column Widths & Alignment
+        self.client_tree.column("client_id", width=70, anchor="center")
+        self.client_tree.column("type", width=80, anchor="center")
+        self.client_tree.column("full_name", width=140, anchor="w")
+        self.client_tree.column("email", width=160, anchor="w")
+        self.client_tree.column("phone_number", width=110, anchor="center")
+        self.client_tree.column("city", width=100, anchor="w")
+        self.client_tree.column("address", width=150, anchor="w")
+        self.client_tree.column("passport_num", width=110, anchor="center")
+        self.client_tree.column("nationality", width=100, anchor="w")
+        self.client_tree.column("emergency_contact", width=120, anchor="w")
+
+        # Scrollbars
         scrollbar = ttk.Scrollbar(display_frame, orient="vertical", command=self.client_tree.yview)
-        self.client_tree.configure(yscrollcommand=scrollbar.set)
+        x_scroll = ttk.Scrollbar(display_frame, orient="horizontal", command=self.client_tree.xview)
+        self.client_tree.configure(yscrollcommand=scrollbar.set, xscrollcommand=x_scroll.set)
 
-        self.client_tree.pack(side="left", fill="both", expand=True)
+        x_scroll.pack(side="bottom", fill="x")
         scrollbar.pack(side="right", fill="y")
+        self.client_tree.pack(side="left", fill="both", expand=True)
+
         self.client_tree.bind("<Double-1>", self.load_client_to_form)
 
     def init_airline_tab(self):
@@ -176,8 +200,7 @@ class MainApplicationWindow:
         self.airline_search_var.trace("w", self.filter_airline_table)
         search_entry = ttk.Entry(search_frame, textvariable=self.airline_search_var, width=30)
         search_entry.pack(side="left", padx=5)
-        ttk.Button(search_frame, text="Clear", command=lambda: self.airline_search_var.set("")).pack(side="left",
-                                                                                                     padx=5)
+        ttk.Button(search_frame, text="Clear", command=lambda: self.airline_search_var.set("")).pack(side="left", padx=5)
 
         ttk.Label(form_frame, text="Airline ID:").grid(row=0, column=0, sticky="w", pady=5)
         self.airline_id_entry = ttk.Entry(form_frame, width=25)
@@ -274,15 +297,18 @@ class MainApplicationWindow:
         self.flight_tree.heading("Start", text="Start City")
         self.flight_tree.heading("End", text="End City")
 
-        # Explicit column widths so every column is fully visible
         self.flight_tree.column("Client", width=90, anchor="center")
         self.flight_tree.column("Airline", width=90, anchor="center")
         self.flight_tree.column("Date", width=110, anchor="center")
         self.flight_tree.column("Start", width=130)
         self.flight_tree.column("End", width=130)
 
+        scrollbar = ttk.Scrollbar(display_frame, orient="vertical", command=self.flight_tree.yview)
+        self.flight_tree.configure(yscrollcommand=scrollbar.set)
+
         self.flight_tree.pack(side="left", fill="both", expand=True)
-        # Bind double-click to load record into form
+        scrollbar.pack(side="right", fill="y")
+
         self.flight_tree.bind("<Double-1>", self.load_flight_to_form)
         self.refresh_flight_table()
 
@@ -297,9 +323,21 @@ class MainApplicationWindow:
             name = str(c.get("name", ""))
             city = str(c.get("city", ""))
             phone = str(c.get("phone_number", ""))
+            email = str(c.get("email", ""))
 
-            if query in c_id.lower() or query in name.lower() or query in city.lower() or query in phone.lower():
-                self.client_tree.insert("", "end", values=(c_id, name, city, phone))
+            if query in c_id.lower() or query in name.lower() or query in city.lower() or query in phone.lower() or query in email.lower():
+                self.client_tree.insert("", "end", values=(
+                    c_id,
+                    c.get("type", "Client"),
+                    name,
+                    email,
+                    phone,
+                    city,
+                    c.get("address", ""),
+                    c.get("passport_number", ""),
+                    c.get("nationality", ""),
+                    c.get("emergency_contact", "")
+                ))
 
     def filter_airline_table(self, *args):
         query = self.airline_search_var.get().strip().lower()
@@ -310,7 +348,7 @@ class MainApplicationWindow:
             a_id = str(a.get("id", ""))
             name = str(a.get("company_name", ""))
             if query in a_id.lower() or query in name.lower():
-                self.airline_tree.insert("", "end", values=(a_id, name))
+                self.airline_tree.insert("", "end", values=(a_id, a.get("type", "Airline"), name))
 
     def filter_flight_table(self, *args):
         query = self.flight_search_var.get().strip().lower()
@@ -336,9 +374,9 @@ class MainApplicationWindow:
         self._clear_client_form()
         self.client_id_entry.insert(0, row_values[0])  # ID
         self.client_id_entry.config(state="readonly")
-        self.client_name_entry.insert(0, row_values[2])  # Name (shifted from 1 to 2)
-        self.client_city_entry.insert(0, row_values[3])  # City (shifted from 2 to 3)
-        self.client_phone_entry.insert(0, row_values[4])  # Phone (shifted from 3 to 4)
+        self.client_name_entry.insert(0, row_values[2])  # Name
+        self.client_phone_entry.insert(0, row_values[4])  # Phone
+        self.client_city_entry.insert(0, row_values[5])  # City
 
     def load_airline_to_form(self, event):
         selected_item = self.airline_tree.selection()
@@ -348,10 +386,9 @@ class MainApplicationWindow:
         self._clear_airline_form()
         self.airline_id_entry.insert(0, row_values[0])  # ID
         self.airline_id_entry.config(state="readonly")
-        self.airline_name_entry.insert(0, row_values[2])  # Company Name (shifted to 2)
+        self.airline_name_entry.insert(0, row_values[2])  # Company Name
 
     def load_flight_to_form(self, event):
-        """Loads selected flight row data into form entries for editing."""
         selected_item = self.flight_tree.selection()
         if not selected_item:
             return
@@ -359,7 +396,7 @@ class MainApplicationWindow:
         self.clear_flight_form()
 
         self.flight_client_id_entry.insert(0, row_values[0])
-        self.flight_client_id_entry.config(state="readonly")  # Lock client/airline identifiers during update
+        self.flight_client_id_entry.config(state="readonly")
         self.flight_airline_id_entry.insert(0, row_values[1])
         self.flight_airline_id_entry.config(state="readonly")
 
@@ -368,7 +405,6 @@ class MainApplicationWindow:
         self.flight_end_entry.insert(0, row_values[4])
 
     def on_update_flight(self):
-        """Saves modifications made to an existing flight booking."""
         c_id = self.flight_client_id_entry.get().strip()
         a_id = self.flight_airline_id_entry.get().strip()
         date_str = self.flight_date_entry.get().strip()
@@ -390,7 +426,6 @@ class MainApplicationWindow:
 
         try:
             if hasattr(self.rm, 'update_record'):
-                # Updates the record matching the client and airline pair
                 self.rm.update_record(c_id, updated_data, record_type="Flight")
 
             self.clear_flight_form()
@@ -401,7 +436,6 @@ class MainApplicationWindow:
             messagebox.showerror("Error", f"Could not update flight: {e}")
 
     def clear_flight_form(self):
-        """Clears the flight form and ensures ID entries are editable again."""
         self.flight_client_id_entry.config(state="normal")
         self.flight_airline_id_entry.config(state="normal")
         self.flight_client_id_entry.delete(0, tk.END)
@@ -534,7 +568,7 @@ class MainApplicationWindow:
 
         row_values = self.client_tree.item(selected_item, "values")
         client_id = row_values[0]
-        client_name = row_values[1]
+        client_name = row_values[2]
 
         if messagebox.askyesno("Confirm Deletion", f"Delete client '{client_name}' (ID: {client_id})?"):
             try:
@@ -553,7 +587,7 @@ class MainApplicationWindow:
 
         row_values = self.airline_tree.item(selected_item, "values")
         airline_id = row_values[0]
-        airline_name = row_values[1]
+        airline_name = row_values[2]
 
         if messagebox.askyesno("Confirm Deletion", f"Delete airline '{airline_name}' (ID: {airline_id})?"):
             try:
@@ -594,8 +628,13 @@ class MainApplicationWindow:
                 c.get("id"),
                 c.get("type", "Client"),
                 c.get("name"),
+                c.get("email", ""),
+                c.get("phone_number"),
                 c.get("city"),
-                c.get("phone_number")
+                c.get("address", ""),
+                c.get("passport_number", ""),
+                c.get("nationality", ""),
+                c.get("emergency_contact", "")
             ))
 
     def refresh_airline_table(self):
