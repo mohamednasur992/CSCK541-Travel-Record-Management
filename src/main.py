@@ -18,7 +18,7 @@ def main():
     print("Initializing Specialist Travel Agent Record Management System...")
 
     # Check for and load existing records on startup
-    db_path = os.path.join(os.path.dirname(__file__), "record", "record.jsonl")
+    db_path = os.path.join(str(os.path.dirname(__file__)), "record", "record.jsonl")
     manager = RecordManager(filepath=db_path)
     print(f"Startup check complete: Loaded {len(manager.records)} record(s) from storage.")
 
@@ -28,7 +28,7 @@ def main():
     # 3. Launch GUI Application
     try:
         # 2. Instantiate the main window, passing the record manager to it
-        '''root = MainApplicationWindow(manager) (got broken after the uniqueness solution)'''
+        ''' root = MainApplicationWindow(manager) '''
         root = tk.Tk()  # Create the root window first
         app = MainApplicationWindow(root, manager)
         root.mainloop()  # Start the application loop

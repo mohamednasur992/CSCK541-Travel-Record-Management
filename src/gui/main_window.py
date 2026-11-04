@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk  # Requires Pillow (pip install Pillow)
 
-
+# pylint: disable=too-many-ancestors
 class AutocompleteCombobox(ttk.Combobox):
     """A custom Combobox that filters options dynamically as you type."""
     def __init__(self, master, list_of_items, **kwargs):
@@ -15,6 +15,7 @@ class AutocompleteCombobox(ttk.Combobox):
         self.bind('<KeyRelease>', self.handle_key_release)
 
     def handle_key_release(self, event):
+        """Filters the dropdown suggestions dynamically as the user types, ignoring navigation keys."""
         # Ignore navigation keys like arrows, enter, etc.
         if event.keysym in ('BackSpace', 'Left', 'Right', 'Up', 'Down', 'Return'):
             return
@@ -33,6 +34,11 @@ class AutocompleteCombobox(ttk.Combobox):
             pass
 
 class MainApplicationWindow:
+    """Main graphical user interface window for the Specialist Travel Agent Record Management System.
+
+        Manages the primary application window, notebook tab navigation (Clients, Airlines, and Flights),
+        styling, custom theme configurations, and data persistence integration via the RecordManager backend.
+        """
     def __init__(self, root, record_manager):
         self.root = root
         self.root.title("Specialist Travel Agent Record Management System — Group B")
@@ -96,19 +102,78 @@ class MainApplicationWindow:
 
             if os.path.exists(logo_path):
                 pil_img = Image.open(logo_path)
-                pil_img = pil_img.resize((300, 180), Image.Resampling.LANCZOS)
+                pil_img = pil_img.resize((350, 250), Image.Resampling.LANCZOS)
                 return ImageTk.PhotoImage(pil_img)
         except Exception as e:
             print(f"Could not load logo image: {e}")
         return None
 
     def add_logo_to_frame(self, parent_frame):
-        """Helper to render the logo image at the bottom of a form frame using grid."""
+        """Helper to render the logo image centered at the bottom of a form frame using grid."""
         if self.logo_image:
-            logo_label = ttk.Label(parent_frame, image=self.logo_image)
+            logo_label = ttk.Label(parent_frame, image=self.logo_image, anchor="center")
             logo_label.image = self.logo_image  # Keep reference
-            # Placed further down in grid row to accommodate all client fields
-            logo_label.grid(row=11, column=0, columnspan=2, pady=(10, 0), sticky="w")
+            # Span across both columns (columnspan=2) and use sticky="" (or no sticky) to keep it centered
+            logo_label.grid(row=11, column=0, columnspan=2, pady=(15, 0))
+
+    def on_city_selected(self, event):
+        """Automatically populates nationality when a city is selected from the dropdown."""
+        city_to_nationality = {
+            # South Africa
+            "Johannesburg": "South African", "Pretoria": "South African", "Cape Town": "South African",
+            # Africa & Middle East
+            "Cairo": "Egyptian", "Lagos": "Nigerian", "Nairobi": "Kenyan", "Accra": "Ghanaian",
+            "Casablanca": "Moroccan",
+            "Dubai": "Emirati", "Doha": "Qatari", "Riyadh": "Saudi Arabian", "Tel Aviv": "Israeli",
+            "Istanbul": "Turkish",
+            # Europe
+            "London": "British", "Paris": "French", "Berlin": "German", "Frankfurt": "German", "Amsterdam": "Dutch",
+            "Madrid": "Spanish", "Rome": "Italian", "Zurich": "Swiss", "Vienna": "Austrian", "Brussels": "Belgian",
+            "Dublin": "Irish", "Stockholm": "Swedish", "Athens": "Greek", "Lisbon": "Portuguese",
+            "Copenhagen": "Danish",
+            # North America
+            "New York": "American", "Los Angeles": "American", "Chicago": "American", "Toronto": "Canadian",
+            "Vancouver": "Canadian",
+            "Mexico City": "Mexican", "Miami": "American", "San Francisco": "American", "Houston": "American",
+            # Asia & Oceania
+            "Tokyo": "Japanese", "Singapore": "Singaporean", "Hong Kong": "Chinese", "Bangkok": "Thai",
+            "Seoul": "South Korean",
+            "Beijing": "Chinese", "Shanghai": "Chinese", "Mumbai": "Indian", "Sydney": "Australian",
+            "Melbourne": "Australian", "Auckland": "New Zealander"
+        }
+
+        selected_city = self.client_city_entry.get().strip()
+        nationality = city_to_nationality.get(selected_city)
+
+        if nationality:
+            self.client_nationality_entry.delete(0, tk.END)
+            self.client_nationality_entry.insert(0, nationality)
+
+    def get_next_client_id(self):
+        """Calculates the next auto-incrementing ID for a new client record."""
+        try:
+            existing_clients = self.rm.search_records(record_type="Client")
+            if not existing_clients:
+                return 1
+
+            max_id = 0
+            for c in existing_clients:
+                c_id = c.get("id")
+                if str(c_id).isdigit():
+                    max_id = max(max_id, int(c_id))
+            return max_id + 1
+        except Exception:
+            return 1
+
+    def on_client_field_modified(self, event=None):
+        """Automatically populates the Client ID when entering client details if empty."""
+        current_id = self.client_id_entry.get().strip()
+        if not current_id:
+            next_id = self.get_next_client_id()
+            self.client_id_entry.config(state="normal")
+            self.client_id_entry.delete(0, tk.END)
+            self.client_id_entry.insert(0, str(next_id))
+            self.client_id_entry.config(state="readonly")
 
     def init_client_tab(self):
         """Builds the Client Management View tab."""
@@ -145,6 +210,9 @@ class MainApplicationWindow:
         self.client_name_entry = ttk.Entry(form_frame)
         self.client_name_entry.grid(row=1, column=1, sticky="ew", pady=3)
 
+        # Trigger auto-ID generation when user starts typing the client's name
+        self.client_name_entry.bind("<KeyRelease>", self.on_client_field_modified)
+
         ttk.Label(form_frame, text="Email:").grid(row=2, column=0, sticky="w", pady=3)
         self.client_email_entry = ttk.Entry(form_frame)
         self.client_email_entry.grid(row=2, column=1, sticky="ew", pady=3)
@@ -171,8 +239,12 @@ class MainApplicationWindow:
             "Tokyo", "Singapore", "Hong Kong", "Bangkok", "Seoul",
             "Beijing", "Shanghai", "Mumbai", "Sydney", "Melbourne", "Auckland"
         ]
+
         self.client_city_entry = AutocompleteCombobox(form_frame, list_of_items=world_cities)
         self.client_city_entry.grid(row=4, column=1, sticky="ew", pady=3)
+
+        # Bind selection event to auto-fill nationality
+        self.client_city_entry.bind("<<ComboboxSelected>>", self.on_city_selected)
 
         ttk.Label(form_frame, text="Address:").grid(row=5, column=0, sticky="w", pady=3)
         self.client_address_entry = ttk.Entry(form_frame)
@@ -262,6 +334,35 @@ class MainApplicationWindow:
         self.client_tree.pack(side="left", fill="both", expand=True)
 
         self.client_tree.bind("<Double-1>", self.load_client_to_form)
+        self._clear_client_form()  # <-- Initializes clean empty form state on load
+
+    def get_next_airline_id(self):
+        """Calculates the next auto-incrementing ID for a new airline record."""
+        try:
+            existing_airlines = self.rm.search_records(record_type="Airline")
+            if not existing_airlines:
+                return 1
+
+            # Find the highest existing integer ID
+            max_id = 0
+            for a in existing_airlines:
+                a_id = a.get("id")
+                if str(a_id).isdigit():
+                    max_id = max(max_id, int(a_id))
+            return max_id + 1
+        except Exception:
+            return 1
+
+    def on_airline_name_selected(self, event=None):
+        """Automatically populates the Airline ID when a company name is selected from the dropdown."""
+        current_id = self.airline_id_entry.get().strip()
+        # If the ID field is currently empty, auto-assign the next sequential ID
+        if not current_id:
+            next_id = self.get_next_airline_id()
+            self.airline_id_entry.config(state="normal")
+            self.airline_id_entry.delete(0, tk.END)
+            self.airline_id_entry.insert(0, str(next_id))
+            self.airline_id_entry.config(state="readonly")
 
     def init_airline_tab(self):
         """Builds the Airline Management View tab."""
@@ -293,8 +394,34 @@ class MainApplicationWindow:
         self.airline_id_entry.grid(row=0, column=1, sticky="ew", pady=5)
 
         ttk.Label(form_frame, text="Company Name:").grid(row=1, column=0, sticky="w", pady=5)
-        self.airline_name_entry = ttk.Entry(form_frame)
+
+        # Top 50 world airlines list
+        world_airlines = [
+            "Qatar Airways (QR)", "Singapore Airlines (SQ)", "Emirates (EK)",
+            "All Nippon Airways (NH)", "Cathay Pacific Airways (CX)", "Japan Airlines (JL)",
+            "Turkish Airlines (TK)", "EVA Air (BR)", "Air France (AF)",
+            "Swiss International Air Lines (LX)", "Korean Air (KE)", "Hainan Airlines (HU)",
+            "British Airways (BA)", "Fiji Airways (FJ)", "Iberia (IB)",
+            "Vistara (UK)", "Virgin Atlantic (VS)", "Lufthansa (LH)",
+            "Etihad Airways (EY)", "Saudi Arabian Airlines (SV)", "Starlux Airlines (JX)",
+            "Ryanair (FR)", "Delta Air Lines (DL)", "United Airlines (UA)",
+            "American Airlines (AA)", "Air Canada (AC)", "Qantas Airways (QF)",
+            "Air New Zealand (NZ)", "KLM Royal Dutch Airlines (KL)", "SAS Scandinavian Airlines (SK)",
+            "Finnair (AY)", "Aeroflot (SU)", "TAP Air Portugal (TP)",
+            "Garuda Indonesia (GA)", "Vietnam Airlines (VN)", "Malaysia Airlines (MH)",
+            "Bangkok Airways (PG)", "Oman Air (WY)", "Gulf Air (GF)",
+            "AirAsia (AK)", "Indigo (6E)", "JetBlue Airways (B6)",
+            "Southwest Airlines (WN)", "Alaska Airlines (AS)", "EasyJet (U2)",
+            "LATAM Airlines (LA)", "Avianca (AV)", "Ethiopian Airlines (ET)",
+            "Kenya Airways (KQ)", "South African Airways (SA)"
+        ]
+
+        # Use AutocompleteCombobox for Company Name with grid sticky="ew"
+        self.airline_name_entry = AutocompleteCombobox(form_frame, list_of_items=world_airlines)
         self.airline_name_entry.grid(row=1, column=1, sticky="ew", pady=5)
+
+        # Automatically populate the ID when an airline is selected from the dropdown
+        self.airline_name_entry.bind("<<ComboboxSelected>>", self.on_airline_name_selected)
 
         btn_frame = ttk.Frame(form_frame)
         btn_frame.grid(row=10, column=0, columnspan=2, pady=15)
@@ -326,6 +453,44 @@ class MainApplicationWindow:
 
         self.airline_tree.bind("<Double-1>", self.load_airline_to_form)
         self.refresh_airline_table()
+        self._clear_airline_form()  # Auto-assigns ID 1 and clears combobox on load
+
+    def get_client_dropdown_items(self):
+        """Returns a list of formatted strings 'ID - Name' for all registered clients."""
+        try:
+            clients = self.rm.search_records(record_type="Client")
+            return [f"{c.get('id')} - {c.get('name')}" for c in clients if c.get('id') is not None]
+        except Exception:
+            return []
+
+    def get_airline_dropdown_items(self):
+        """Returns a list of formatted strings 'ID - Company Name' for all registered airlines."""
+        try:
+            airlines = self.rm.search_records(record_type="Airline")
+            return [f"{a.get('id')} - {a.get('company_name')}" for a in airlines if a.get('id') is not None]
+        except Exception:
+            return []
+
+    def refresh_flight_dropdowns(self):
+        """Refreshes the client and airline autocomplete comboboxes in the flight tab."""
+        if hasattr(self, 'flight_client_combo'):
+            self.flight_client_combo.all_items = self.get_client_dropdown_items()
+            self.flight_client_combo['values'] = self.flight_client_combo.all_items
+        if hasattr(self, 'flight_airline_combo'):
+            self.flight_airline_combo.all_items = self.get_airline_dropdown_items()
+            self.flight_airline_combo['values'] = self.flight_airline_combo.all_items
+
+    def extract_id_from_selection(self, selection_str):
+        """Extracts the integer ID from formatted dropdown strings like '1 - John Doe'."""
+        if not selection_str:
+            return None
+        selection_str = selection_str.strip()
+        if selection_str.isdigit():
+            return int(selection_str)
+        parts = selection_str.split(" - ")
+        if parts[0].strip().isdigit():
+            return int(parts[0].strip())
+        return None
 
     def init_flight_tab(self):
         """Builds the Flight Booking Management View tab."""
@@ -351,13 +516,13 @@ class MainApplicationWindow:
         search_entry.pack(side="left", padx=5)
         ttk.Button(search_frame, text="Clear", command=lambda: self.flight_search_var.set("")).pack(side="left", padx=5)
 
-        ttk.Label(form_frame, text="Client ID:").grid(row=0, column=0, sticky="w", pady=5)
-        self.flight_client_id_entry = ttk.Entry(form_frame)
-        self.flight_client_id_entry.grid(row=0, column=1, sticky="ew", pady=5)
+        ttk.Label(form_frame, text="Client:").grid(row=0, column=0, sticky="w", pady=5)
+        self.flight_client_combo = AutocompleteCombobox(form_frame, list_of_items=self.get_client_dropdown_items())
+        self.flight_client_combo.grid(row=0, column=1, sticky="ew", pady=5)
 
-        ttk.Label(form_frame, text="Airline ID:").grid(row=1, column=0, sticky="w", pady=5)
-        self.flight_airline_id_entry = ttk.Entry(form_frame)
-        self.flight_airline_id_entry.grid(row=1, column=1, sticky="ew", pady=5)
+        ttk.Label(form_frame, text="Airline:").grid(row=1, column=0, sticky="w", pady=5)
+        self.flight_airline_combo = AutocompleteCombobox(form_frame, list_of_items=self.get_airline_dropdown_items())
+        self.flight_airline_combo.grid(row=1, column=1, sticky="ew", pady=5)
 
         from tkcalendar import DateEntry
 
@@ -539,31 +704,49 @@ class MainApplicationWindow:
             "end_city": row_values[4]
         }
 
-        if row_values[0]:
-            self.flight_client_id_entry.insert(0, str(row_values[0]))
-            self.flight_client_id_entry.config(state="readonly")
+        client_id_val = str(row_values[0])
+        airline_id_val = str(row_values[1])
 
-        if row_values[1]:
-            self.flight_airline_id_entry.insert(0, str(row_values[1]))
-            self.flight_airline_id_entry.config(state="readonly")
+        # Match client combobox item
+        for item in self.flight_client_combo.all_items:
+            if item.startswith(client_id_val + " -") or item == client_id_val:
+                self.flight_client_combo.set(item)
+                break
+        else:
+            self.flight_client_combo.set(client_id_val)
+
+        # Match airline combobox item
+        for item in self.flight_airline_combo.all_items:
+            if item.startswith(airline_id_val + " -") or item == airline_id_val:
+                self.flight_airline_combo.set(item)
+                break
+        else:
+            self.flight_airline_combo.set(airline_id_val)
 
         if row_values[2]:
             if hasattr(self.flight_date_entry, 'set_date'):
                 self.flight_date_entry.set_date(row_values[2])
 
         if len(row_values) > 3 and row_values[3]:
-            self.flight_start_entry.insert(0, str(row_values[3]))
+            self.flight_start_entry.set(str(row_values[3]))
 
         if len(row_values) > 4 and row_values[4]:
-            self.flight_end_entry.insert(0, str(row_values[4]))
+            self.flight_end_entry.set(str(row_values[4]))
 
     def on_update_flight(self):
         if not hasattr(self, 'original_flight_key') or not self.original_flight_key:
             messagebox.showwarning("Selection Error", "Please double-click a flight from the table to update.")
             return
 
-        c_id = self.flight_client_id_entry.get().strip()
-        a_id = self.flight_airline_id_entry.get().strip()
+        client_selection = self.flight_client_combo.get().strip()
+        airline_selection = self.flight_airline_combo.get().strip()
+
+        c_id = self.extract_id_from_selection(client_selection)
+        a_id = self.extract_id_from_selection(airline_selection)
+
+        if c_id is None or a_id is None:
+            messagebox.showwarning("Validation Error", "Please select a valid client and airline.")
+            return
 
         if hasattr(self.flight_date_entry, 'get_date'):
             date_str = self.flight_date_entry.get_date().strftime('%Y-%m-%d')
@@ -573,13 +756,13 @@ class MainApplicationWindow:
         start = self.flight_start_entry.get().strip()
         end = self.flight_end_entry.get().strip()
 
-        if not c_id or not a_id or not date_str or not start or not end:
+        if not date_str or not start or not end:
             messagebox.showwarning("Validation Error", "All fields must be filled to update.")
             return
 
         updated_data = {
-            "client_id": int(c_id) if c_id.isdigit() else c_id,
-            "airline_id": int(a_id) if a_id.isdigit() else a_id,
+            "client_id": c_id,
+            "airline_id": a_id,
             "date": date_str,
             "start_city": start,
             "end_city": end,
@@ -587,7 +770,6 @@ class MainApplicationWindow:
         }
 
         try:
-            # Pass original identifiers to target and update ONLY the selected row
             if hasattr(self.rm, 'update_record'):
                 self.rm.update_record(
                     self.original_flight_key["client_id"],
@@ -690,12 +872,21 @@ class MainApplicationWindow:
                 return
 
             existing_clients = self.rm.search_records(record_type="Client")
+
             for c in existing_clients:
+                # Check for duplicate Client ID
                 if int(c.get("id")) == c_id:
                     messagebox.showerror("Duplicate Record Error", f"A client with ID '{c_id}' already exists!")
                     return
 
-            # Pass parameters matching the updated add_client method
+                # Check for duplicate Passport/ID if provided
+                if passport and str(c.get("passport_number", "")).strip().lower() == passport.lower():
+                    messagebox.showerror(
+                        "Duplicate Record Error",
+                        f"A client with Passport/ID '{passport}' is already registered ({c.get('name')})."
+                    )
+                    return
+
             if hasattr(self.rm, 'add_client'):
                 self.rm.add_client(
                     client_id=c_id,
@@ -718,35 +909,51 @@ class MainApplicationWindow:
 
     def on_add_airline(self):
         try:
-            a_id = int(self.airline_id_entry.get().strip())
+            self.airline_id_entry.config(state="normal")
+            a_id_str = self.airline_id_entry.get().strip()
             name = self.airline_name_entry.get().strip()
+            self.airline_id_entry.config(state="readonly")
+
             if not name:
                 messagebox.showerror("Validation Error", "Company name cannot be empty.")
                 return
+
+            a_id = int(a_id_str)
+
+            # Check for duplicate company name (case-insensitive)
+            existing_airlines = self.rm.search_records(record_type="Airline")
+            for airline in existing_airlines:
+                if str(airline.get("company_name", "")).strip().lower() == name.lower():
+                    messagebox.showerror(
+                        "Duplicate Record Error",
+                        f"The airline '{name}' is already registered (ID: {airline.get('id')})."
+                    )
+                    return
+
             self.rm.add_airline(a_id, name)
             self.refresh_airline_table()
             self.status_var.set(f"Successfully added airline: {name}")
             messagebox.showinfo("Success", "Airline added successfully!")
             self._clear_airline_form()
+
         except ValueError:
             messagebox.showerror("Invalid Input", "Airline ID must be a valid integer.")
 
     def on_add_flight(self):
         try:
-            c_id_str = self.flight_client_id_entry.get().strip()
-            a_id_str = self.flight_airline_id_entry.get().strip()
+            client_selection = self.flight_client_combo.get().strip()
+            airline_selection = self.flight_airline_combo.get().strip()
 
-            # 1. Explicitly check if fields are empty or not digits before converting
-            if not c_id_str or not a_id_str:
-                messagebox.showwarning("Validation Error", "Client ID and Airline ID cannot be empty.")
+            if not client_selection or not airline_selection:
+                messagebox.showwarning("Validation Error", "Please select a client and an airline.")
                 return
 
-            if not c_id_str.isdigit() or not a_id_str.isdigit():
-                messagebox.showwarning("Validation Error", "Client ID and Airline ID must be numeric integers.")
-                return
+            c_id = self.extract_id_from_selection(client_selection)
+            a_id = self.extract_id_from_selection(airline_selection)
 
-            c_id = int(c_id_str)
-            a_id = int(a_id_str)
+            if c_id is None or a_id is None:
+                messagebox.showwarning("Validation Error", "Invalid Client or Airline selection.")
+                return
 
             # Safely get the date from tkcalendar DateEntry or standard entry
             if hasattr(self.flight_date_entry, 'get_date'):
@@ -761,21 +968,42 @@ class MainApplicationWindow:
                 messagebox.showwarning("Validation Error", "All flight fields must be filled.")
                 return
 
-            # 2. Verify that the Client actually exists in storage
+            # Verify that the Client actually exists
             existing_clients = self.rm.search_records(record_type="Client")
             client_exists = any(int(c.get("id")) == c_id for c in existing_clients if str(c.get("id")).isdigit())
             if not client_exists:
-                messagebox.showerror("Integrity Error",
-                                     f"Client ID '{c_id}' does not exist! Please register this client first.")
+                messagebox.showerror("Integrity Error", f"Client ID '{c_id}' does not exist!")
                 return
 
-            # 3. Verify that the Airline actually exists in storage
+            # Verify that the Airline actually exists
             existing_airlines = self.rm.search_records(record_type="Airline")
             airline_exists = any(int(a.get("id")) == a_id for a in existing_airlines if str(a.get("id")).isdigit())
             if not airline_exists:
-                messagebox.showerror("Integrity Error",
-                                     f"Airline ID '{a_id}' does not exist! Please register this airline first.")
+                messagebox.showerror("Integrity Error", f"Airline ID '{a_id}' does not exist!")
                 return
+
+            # Verify no exact identical booking exists
+            existing_flights = self.rm.search_records(record_type="Flight")
+            for f in existing_flights:
+                if (int(f.get("client_id")) == c_id and
+                        int(f.get("airline_id")) == a_id and
+                        str(f.get("date")) == date_str and
+                        str(f.get("start_city")).lower() == start.lower() and
+                        str(f.get("end_city")).lower() == end.lower()):
+                    messagebox.showerror(
+                        "Duplicate Booking Error",
+                        "An identical flight booking already exists for this client on this date."
+                    )
+                    return
+
+            self.rm.add_flight(c_id, a_id, date_str, start, end)
+            self.refresh_flight_table()
+            self.status_var.set(f"Successfully booked flight from {start} to {end}")
+            messagebox.showinfo("Success", "Flight booking created successfully!")
+            self.clear_flight_form()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"An unexpected error occurred: {e}")
 
             # 4. Add the flight if all checks pass
             self.rm.add_flight(c_id, a_id, date_str, start, end)
@@ -867,6 +1095,18 @@ class MainApplicationWindow:
                 c.get("nationality", ""),
                 c.get("emergency_contact", "")
             ))
+        self.refresh_flight_dropdowns()  # Keep flight tab synchronized
+
+    def refresh_airline_table(self):
+        for item in self.airline_tree.get_children():
+            self.airline_tree.delete(item)
+        for a in self.rm.search_records(record_type="Airline"):
+            self.airline_tree.insert("", "end", values=(
+                a.get("id"),
+                a.get("type", "Airline"),
+                a.get("company_name")
+            ))
+        self.refresh_flight_dropdowns()  # Keep flight tab synchronized
 
     def refresh_airline_table(self):
         for item in self.airline_tree.get_children():
@@ -890,6 +1130,8 @@ class MainApplicationWindow:
     def _clear_client_form(self):
         self.client_id_entry.config(state="normal")
         self.client_id_entry.delete(0, tk.END)
+        self.client_id_entry.config(state="readonly")
+
         self.client_name_entry.delete(0, tk.END)
         self.client_email_entry.delete(0, tk.END)
         self.client_phone_entry.delete(0, tk.END)
@@ -900,18 +1142,20 @@ class MainApplicationWindow:
         self.client_emergency_entry.delete(0, tk.END)
 
     def _clear_airline_form(self):
+        """Clears the airline form and leaves the ID blank until a company name is selected."""
         self.airline_id_entry.config(state="normal")
         self.airline_id_entry.delete(0, tk.END)
+        self.airline_id_entry.config(state="readonly")
+
         self.airline_name_entry.delete(0, tk.END)
 
     def clear_flight_form(self):
-        """Clears the flight form and ensures ID entries are editable again."""
+        """Clears the flight form and refreshes dropdown options."""
         self.original_flight_key = None
+        self.refresh_flight_dropdowns()
         try:
-            self.flight_client_id_entry.config(state="normal")
-            self.flight_airline_id_entry.config(state="normal")
-            self.flight_client_id_entry.delete(0, tk.END)
-            self.flight_airline_id_entry.delete(0, tk.END)
+            self.flight_client_combo.set("")
+            self.flight_airline_combo.set("")
         except Exception:
             pass
 
