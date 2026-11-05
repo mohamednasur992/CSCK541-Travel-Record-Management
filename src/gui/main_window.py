@@ -7,16 +7,16 @@ from PIL import Image, ImageTk  # Requires Pillow (pip install Pillow)
 
 # pylint: disable=too-many-ancestors
 class AutocompleteCombobox(ttk.Combobox):
-    """A custom Combobox that filters options dynamically as you type."""
+    """A custom Combobox that filters options dynamically as you type in alphabetical order."""
     def __init__(self, master, list_of_items, **kwargs):
         super().__init__(master, **kwargs)
-        self.all_items = list_of_items
+        # 1. Sort the complete master list alphabetically on initialization
+        self.all_items = sorted(list_of_items)
         self['values'] = self.all_items
         self.bind('<KeyRelease>', self.handle_key_release)
 
     def handle_key_release(self, event):
-        """Filters the dropdown suggestions dynamically as the user types, ignoring navigation keys."""
-        # Ignore navigation keys like arrows, enter, etc.
+        """Filters and sorts dropdown suggestions dynamically as the user types."""
         if event.keysym in ('BackSpace', 'Left', 'Right', 'Up', 'Down', 'Return'):
             return
 
@@ -24,10 +24,11 @@ class AutocompleteCombobox(ttk.Combobox):
         if typed == '':
             self['values'] = self.all_items
         else:
-            filtered = [item for item in self.all_items if typed in item.lower()]
+            # 2. Sort filtered suggestions alphabetically as the user types
+            filtered = sorted([item for item in self.all_items if typed in item.lower()])
             self['values'] = filtered
 
-        # Keep dropdown open to show suggestions
+        # Keep popdown window open to display suggestions
         try:
             self.tk.call('ttk::combobox::PopdownWindow', self)
         except Exception:

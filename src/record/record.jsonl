@@ -1,3 +1,4 @@
-{"id": 1, "type": "Client", "name": "Abe Maduna", "email": "mmaduna@liverpool.ac.uk", "phone_number": "+832878260", "city": "Johannesburg", "address": "100, 9th Street", "passport_number": "test", "nationality": "South African", "emergency_contact": "+27631713932"}
+{"id": 1, "type": "Client", "name": "Abe Maduna", "email": "mmaduna@liverpool.ac.uk", "phone_number": "+832878260", "city": "Johannesburg", "address": "100, 9th Street", "passport_number": "test", "nationality": "South African", "emergency_contact": "+832007335"}
 {"id": 1, "type": "Airline", "company_name": "South African Airways (SA)"}
-{"type": "Flight", "client_id": 1, "airline_id": 1, "date": "2026-11-20", "start_city": "Johannesburg", "end_city": "London"}
+{"id": 2, "type": "Airline", "company_name": "Emirates (EK)"}
+{"type": "Flight", "client_id": 1, "airline_id": 1, "date": "2026-11-05", "start_city": "Johannesburg", "end_city": "Moscow"}
