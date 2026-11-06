@@ -67,7 +67,7 @@ The structure separates the GUI in main_window.py from the record-management log
 
 ---
 
-## Installation and Setup
+## System Setup
 
 1. **Clone the Repository:**
    ```bash
@@ -77,7 +77,7 @@ The structure separates the GUI in main_window.py from the record-management log
 
 2. **Create a Virtual Environment:**
 
-Creating a virtual environment is recommended to isolate the project's dependencies
+   Creating a virtual environment is recommended to isolate the project's dependencies
 
    * **Windows:**
      ```bash
@@ -92,7 +92,7 @@ Creating a virtual environment is recommended to isolate the project's dependenc
 
 3. **Configure PyCharm**
 
-When using PyCharm:
+   When using PyCharm:
    * Locate the src directory in the Project panel.
    * Right-click the `src` folder in PyCharm's Project sidebar.
    * Select Mark Directory as → Sources Root.
@@ -111,25 +111,27 @@ The application will open the graphical interface for managing the travel agent'
 
 **Client Records**
 
-Stores information required to identify and manage the travel agent's clients.
+   Stores information required to identify and manage the travel agent's clients.
 
 **Flight Records**
 
-Stores information relating to available or recorded flights.
+   Stores information relating to available or recorded flights.
 
 **Airline Company Records**
 
-Stores information about the airlines associated with flight records.
+   Stores information about the airlines associated with flight records.
 
 The GUI provides users with a consistent interface through which these records can be created, viewed and managed.
 
 ---
 
-## Authors & Acknowledgments
+## Authors and Acknowledgments
 
-Developed by Group B
+   Developed by Group B
+   
    * Mohamed Nasur, 
    * Moegamat Sheraad Jacobs, 
    * Syed Raza, and 
    * Mzanempi Abednego Maduna
-as part of the CSCK541 Module Coursework.
+   
+   as part of the CSCK541 Module Coursework.
