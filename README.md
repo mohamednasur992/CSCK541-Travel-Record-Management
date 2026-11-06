@@ -30,16 +30,24 @@ The system is developed using Python and Tkinter, with Pillow (PIL) used to supp
 CSCK541-Travel-Record-Management/
 
 src/
+    assets
+        logo.png             # Logo for the application
     gui/
         __init__.py
         main_window.py       # Main application interface and layout
     record/
-        init__.py
+        __init__.py
         record.py            # RecordManager and data handling logic
         record.jsonl         # Record storage
+    tests/
+        test_travel_autocomplete.py          # Tests dynamic location suggestions, filtering, and alphabetical ordering.
+        test_travel_e2e_integration.py       # Tests end-to-end workflows across forms, autocomplete, sorting, pagination, and persistence.
+        test_travel_error_handling.py        # Tests validation of invalid inputs, missing required fields, and invalid date ranges.
+        test_travel_persistence.py           # Tests JSON save/load operations, record appending, and recovery from corrupted data.
+        test_travel_records.py               # Tests core record management, field validation, filtering, and sorting.
+        test_travel_ui.py                    # Tests GUI initialization, search bindings, and Treeview column sorting.
+        test_travel_ui_pagination.py         # Tests pagination, dataset slicing, and previous/next navigation boundaries.
     main.py                  # Entry point script to launch the application
-    assets
-        logo.png             # Logo for the application
 .gitignore
 README.md                    # Project documentation
 requirements.txt             # Project dependencies
