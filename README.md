@@ -4,9 +4,9 @@ The Specialist Travel Agent Record Management System is a GUI-based Python appli
 
 The application enables a specialist travel agent to create, view and manage three primary record types:
 
-Client Records
-Flight Records
-Airline Company Records
+* Client Records
+* Flight Records
+* Airline Company Records
 
 The system is developed using Python and Tkinter, with Pillow (PIL) used to support application branding and image handling.
 
@@ -45,22 +45,6 @@ README.md                    # Project documentation
 requirements.txt             # Project dependencies
 ```
 
-CSCK541-Travel-Record-Management/
-├── src/
-│   ├── gui/
-│   │   ├── __init__.py
-│   │   └── main_window.py
-│   ├── record/
-│   │   ├── __init__.py
-│   │   ├── record.py
-│   │   └── record.jsonl
-│   ├── assets/
-│   │   └── logo.png
-│   └── main.py
-├── .gitignore
-├── README.md
-└── requirements.txt
-
 The structure separates the GUI in main_window.py from the record-management logic in record.py, while main.py acts as the application's entry point.
 
 ---
@@ -71,9 +55,19 @@ The structure separates the GUI in main_window.py from the record-management log
 * **Third-Party Libraries:**
   * `Pillow` (PIL) — Image processing for icons/logos
 
+**Install the required third-party dependencies with:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+**Pillow can be installed directly:**
+   ```bash
+   pip install Pillow
+   ```
+
 ---
 
-## Installation & Setup
+## Installation and Setup
 
 1. **Clone the Repository:**
    ```bash
@@ -81,7 +75,10 @@ The structure separates the GUI in main_window.py from the record-management log
    cd CSCK541-Travel-Record-Management
    ```
 
-2. **Create and Activate a Virtual Environment (Optional but Recommended):**
+2. **Create a Virtual Environment:**
+
+Creating a virtual environment is recommended to isolate the project's dependencies
+
    * **Windows:**
      ```bash
      python -m venv .venv
@@ -93,15 +90,12 @@ The structure separates the GUI in main_window.py from the record-management log
      source .venv/bin/activate
      ```
 
-3. **Install Dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-   *(Alternatively, install Pillow directly: `pip install Pillow`)*
+3. **Configure PyCharm**
 
-4. **Mark `src` as Sources Root in PyCharm:**
+When using PyCharm:
+   * Locate the src directory in the Project panel.
    * Right-click the `src` folder in PyCharm's Project sidebar.
-   * Navigate to **Mark Directory as** -> **Sources Root**.
+   * Select Mark Directory as → Sources Root.
 
 ---
 
@@ -113,7 +107,29 @@ To launch the application, execute the `main.py` entry script from the root or `
 python src/main.py
 ```
 
+The application will open the graphical interface for managing the travel agent's records.
+
+**Client Records**
+
+Stores information required to identify and manage the travel agent's clients.
+
+**Flight Records**
+
+Stores information relating to available or recorded flights.
+
+**Airline Company Records**
+
+Stores information about the airlines associated with flight records.
+
+The GUI provides users with a consistent interface through which these records can be created, viewed and managed.
+
 ---
 
 ## Authors & Acknowledgments
-Developed by Group B (Mohamed Nasur, Moegamat Sheraad Jacobs, Syed Raza and Mzanempi Abednego Maduna) as part of the CSCK541 Module Coursework.
+
+Developed by Group B
+   * Mohamed Nasur, 
+   * Moegamat Sheraad Jacobs, 
+   * Syed Raza, and 
+   * Mzanempi Abednego Maduna
+as part of the CSCK541 Module Coursework.
