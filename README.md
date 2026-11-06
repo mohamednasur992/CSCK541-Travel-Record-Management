@@ -1,15 +1,26 @@
 # Specialist Travel Agent Record Management System
 
-A GUI-based Python application designed for travel agents to create, view, manage, and process travel bookings and customer records efficiently. Built using Python, Tkinter, and Pillow (PIL).
+The Specialist Travel Agent Record Management System is a GUI-based Python application developed by Group B as part of the CSCK541 module coursework.
+
+The application enables a specialist travel agent to create, view and manage three primary record types:
+
+Client Records
+Flight Records
+Airline Company Records
+
+The system is developed using Python and Tkinter, with Pillow (PIL) used to support application branding and image handling.
 
 ---
 
 ## Features
 
-* **Interactive GUI Interface:** Built with Tkinter for a clean desktop user experience.
-* **Record Management:** Add, update, view, and organize customer travel bookings.
-* **Logo & Visual Customization:** Image support for branding and custom UI styling using Pillow (`PIL`).
-* **Modular Architecture:** Structured separation between the GUI, record handling logic, and entry scripts.
+* **Graphical User Interface:** Desktop interface developed using Tkinter.
+* **Client Record Management:** Create, view and maintain client information.
+* **Flight Record Management:** Manage flight-related information.
+* **Airline Company Records:** Maintain information relating to airline companies.
+* **Record Storage:** Application records are stored in JSON Lines (.jsonl) format.
+* **Visual Branding:** Pillow provides image support for the Group B logo and other interface assets.
+* **Modular Architecture:** GUI, record-management logic and application start-up responsibilities are separated into dedicated modules.
 
 ---
 
@@ -21,7 +32,7 @@ CSCK541-Travel-Record-Management/
 src/
     gui/
         __init__.py
-        main_window.py       # Main application interface & layout
+        main_window.py       # Main application interface and layout
     record/
         init__.py
         record.py            # RecordManager and data handling logic
@@ -33,6 +44,24 @@ src/
 README.md                    # Project documentation
 requirements.txt             # Project dependencies
 ```
+
+CSCK541-Travel-Record-Management/
+├── src/
+│   ├── gui/
+│   │   ├── __init__.py
+│   │   └── main_window.py
+│   ├── record/
+│   │   ├── __init__.py
+│   │   ├── record.py
+│   │   └── record.jsonl
+│   ├── assets/
+│   │   └── logo.png
+│   └── main.py
+├── .gitignore
+├── README.md
+└── requirements.txt
+
+The structure separates the GUI in main_window.py from the record-management logic in record.py, while main.py acts as the application's entry point.
 
 ---
 
@@ -87,4 +116,4 @@ python src/main.py
 ---
 
 ## Authors & Acknowledgments
-Developed as part of the CSCK541 Module Coursework.
+Developed by Group B (Mohamed Nasur, Moegamat Sheraad Jacobs, Syed Raza and Mzanempi Abednego Maduna) as part of the CSCK541 Module Coursework.
