@@ -3,23 +3,26 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+# pylint: disable=import-error
 from gui.autocomplete import AutocompleteCombobox
 from gui.constants import WORLD_AIRLINES
+
 
 # Explicit column definitions provide user-friendly Treeview headings.
 AIRLINE_COLUMNS = {
     "airline_id": "Airline ID",
-    "type": "Record Type",
     "company_name": "Company Name",
 }
 
 # Field order used when displaying and filtering airline records.
 AIRLINE_RECORD_FIELDS = (
     "id",
-    "type",
     "company_name",
 )
 
+# Subtle row colours improve record scanning without adding visual clutter.
+TABLE_ROW_EVEN = "#FFFFFF"
+TABLE_ROW_ODD = "#F3F7FA"
 
 class AirlineTab:  # pylint: disable=too-many-instance-attributes
     """Manage airline data entry, validation, searching, and CRUD operations."""
@@ -181,6 +184,7 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
         ttk.Button(
             button_frame,
             text="Delete",
+            style="Danger.TButton",
             command=self.on_delete_airline,
         ).pack(side="left", padx=2)
 
@@ -191,6 +195,17 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
             self.display_frame,
             columns=tuple(AIRLINE_COLUMNS),
             show="headings",
+        )
+
+        # Apply alternating row colours to improve readability.
+        self.airline_tree.tag_configure(
+            "even_row",
+            background=TABLE_ROW_EVEN,
+        )
+
+        self.airline_tree.tag_configure(
+            "odd_row",
+            background=TABLE_ROW_ODD,
         )
 
         for column, heading in AIRLINE_COLUMNS.items():
@@ -240,7 +255,7 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
         )
 
         self.refresh_table()
-        self.clear_form()
+        self.clear_form(report_status=False)
 
     def get_next_airline_id(self):
         """Return the next available sequential airline ID."""
@@ -342,11 +357,14 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
                 return
 
             # Prevent duplicate company records even when the ID differs.
-            company_name = str(airline["company_name"]).strip().casefold()
+            company_name = str(
+                airline["company_name"]
+            ).strip().casefold()
 
             duplicate_name = any(
-                str(record.get("company_name", "")).strip().casefold()
-                == company_name
+                str(
+                    record.get("company_name", "")
+                ).strip().casefold() == company_name
                 for record in self.rm.search_records(record_type="Airline")
             )
 
@@ -362,15 +380,17 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
                 airline["company_name"],
             )
 
+            company_name = airline["company_name"]
+
             self.refresh_table()
             self.clear_form()
 
-            messagebox.showinfo(
-                "Success",
-                "Airline added successfully.",
+            self.main.update_status(
+                f'Airline "{company_name}" added successfully.'
             )
 
         except (TypeError, ValueError) as error:
+            self.main.update_status(f"Airline creation failed: {error}")
             messagebox.showerror(
                 "Unable to Add Airline",
                 str(error),
@@ -394,12 +414,15 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
             updated_data = self.get_form_data()
 
             # Prevent an edited company name from duplicating another airline.
-            company_name = str(updated_data["company_name"]).strip().casefold()
+            company_name = str(
+                updated_data["company_name"]
+            ).strip().casefold()
 
             duplicate_name = any(
                 str(record.get("id")) != str(airline_id)
-                and str(record.get("company_name", "")).strip().casefold()
-                == company_name
+                and str(
+                    record.get("company_name", "")
+                ).strip().casefold() == company_name
                 for record in self.rm.search_records(record_type="Airline")
             )
 
@@ -424,7 +447,11 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
                 return
 
             self.refresh_table()
-            self.clear_form()
+            self.clear_form(report_status=False)
+
+            self.main.update_status(
+                f'Airline "{updated_data["company_name"]}" updated successfully.'
+            )
 
             messagebox.showinfo(
                 "Success",
@@ -432,6 +459,7 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
             )
 
         except (TypeError, ValueError) as error:
+            self.main.update_status(f"Airline update failed: {error}")
             messagebox.showerror(
                 "Unable to Update Airline",
                 str(error),
@@ -442,6 +470,7 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
         selected_items = self.airline_tree.selection()
 
         if not selected_items:
+            self.main.update_status("Select an airline to delete.")
             messagebox.showwarning(
                 "No Airline Selected",
                 "Select an airline to delete.",
@@ -454,12 +483,13 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
             "values",
         )
         airline_id = values[0]
-        company_name = values[2]
+        company_name = values[1]
 
         if not messagebox.askyesno(
             "Confirm Deletion",
             f"Delete {company_name} (Airline ID {airline_id})?",
         ):
+            self.main.update_status("Airline deletion cancelled.")
             return
 
         try:
@@ -476,7 +506,11 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
                 return
 
             self.refresh_table()
-            self.clear_form()
+            self.clear_form(report_status=False)
+
+            self.main.update_status(
+                f'Airline "{company_name}" deleted successfully.'
+            )
 
             messagebox.showinfo(
                 "Success",
@@ -485,6 +519,7 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
 
         except ValueError as error:
             # RecordManager protects airlines referenced by Flight records.
+            self.main.update_status(f"Airline deletion blocked: {error}")
             messagebox.showerror(
                 "Integrity Constraint",
                 str(error),
@@ -503,21 +538,26 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
             "values",
         )
 
-        self.clear_form()
+        self.clear_form(report_status=False)
 
         # Temporarily unlock the generated ID field while loading the record.
         self.set_airline_id(values[0])
 
         self.airline_name_entry.insert(
             0,
-            values[2],
+            values[1],
         )
 
-    def clear_form(self):
+        self.main.update_status(f'Loaded airline "{values[1]}" for editing.')
+
+    def clear_form(self, report_status=True):
         """Clear all airline fields and return the form to its initial state."""
         self.set_airline_id("")
         self.airline_name_entry.delete(0, tk.END)
         self.airline_name_entry.focus_set()
+
+        if report_status:
+            self.main.update_status("Airline form cleared.")
 
     @staticmethod
     def airline_to_values(airline):
@@ -527,12 +567,22 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
             for field in AIRLINE_RECORD_FIELDS
         )
 
-    def insert_airline_row(self, airline):
-        """Insert one airline record into the Treeview."""
+    def insert_airline_row(self, airline, row_index=None):
+        """Insert one airline record using alternating row colours."""
+        if row_index is None:
+            row_index = len(self.airline_tree.get_children())
+
+        row_tag = (
+            "even_row"
+            if row_index % 2 == 0
+            else "odd_row"
+        )
+
         self.airline_tree.insert(
             "",
             "end",
             values=self.airline_to_values(airline),
+            tags=(row_tag,),
         )
 
     def clear_tree(self):
@@ -544,21 +594,30 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
         """Reload the airline table from the current RecordManager data."""
         self.clear_tree()
 
-        airlines = self.rm.search_records(record_type="Airline")
+        airlines = self.rm.search_records(
+            record_type="Airline"
+        )
 
-        for airline in airlines:
-            self.insert_airline_row(airline)
+        for row_index, airline in enumerate(airlines):
+            self.insert_airline_row(
+                airline,
+                row_index,
+            )
 
         # Airline changes affect the choices available when creating flights.
         self.main.refresh_flight_dropdowns()
 
     def filter_airline_table(self, *_args):
-        """Filter displayed airlines by ID, type, or company name."""
+        """Filter displayed airlines by ID or company name."""
         query = self.airline_search_var.get().strip().casefold()
 
         self.clear_tree()
 
-        airlines = self.rm.search_records(record_type="Airline")
+        airlines = self.rm.search_records(
+            record_type="Airline"
+        )
+
+        matches = []
 
         for airline in airlines:
             values = self.airline_to_values(airline)
@@ -567,8 +626,21 @@ class AirlineTab:  # pylint: disable=too-many-instance-attributes
                     query in str(value).casefold()
                     for value in values
             ):
-                self.airline_tree.insert(
-                    "",
-                    "end",
-                    values=values,
-                )
+                matches.append(airline)
+
+        # Recalculate row colours for the filtered result set so the
+        # zebra-striping remains continuous after a search.
+        for row_index, airline in enumerate(matches):
+            self.insert_airline_row(
+                airline,
+                row_index,
+            )
+
+        if query:
+            self.main.update_status(
+                f"Airline search returned {len(matches)} record(s)."
+            )
+        else:
+            self.main.update_status(
+                f"Showing {len(matches)} airline record(s)."
+            )

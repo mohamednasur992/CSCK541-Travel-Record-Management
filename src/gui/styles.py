@@ -80,3 +80,29 @@ def setup_styles(root):
         "TButton",
         background=[("active", text_color)],
     )
+
+
+    # Destructive actions must be visually distinct from ordinary actions.
+    style.configure(
+        "Danger.TButton",
+        background="#B42318",
+        foreground=white,
+        font=("Segoe UI", 10, "bold"),
+        padding=6,
+    )
+    style.map(
+        "Danger.TButton",
+        background=[
+            ("pressed", "#7A1A14"),
+            ("active", "#912018"),
+            ("disabled", "#C8A5A1"),
+        ],
+        foreground=[("disabled", "#F7E8E6")],
+    )
+
+    style.configure(
+        "Status.TLabel",
+        background="#E8EDF3",
+        foreground=text_color,
+        font=("Segoe UI", 9),
+    )

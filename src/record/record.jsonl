@@ -1,4 +1,10 @@
 {"id": 1, "type": "Client", "name": "Abe Maduna", "email": "mmaduna@liverpool.ac.uk", "phone_number": "+832878260", "city": "Johannesburg", "address": "100, 9th Street", "passport_number": "test", "nationality": "South African", "emergency_contact": "+832007335"}
 {"id": 1, "type": "Airline", "company_name": "South African Airways (SA)"}
 {"id": 2, "type": "Airline", "company_name": "Emirates (EK)"}
-{"type": "Flight", "client_id": 1, "airline_id": 1, "date": "2026-11-05", "start_city": "Johannesburg", "end_city": "Moscow"}
+{"type": "Flight", "client_id": 1, "airline_id": 1, "date": "2026-11-09", "start_city": "Johannesburg", "end_city": "Moscow"}
+{"type": "Flight", "client_id": 1, "airline_id": 2, "date": "2026-11-09", "start_city": "Moscow", "end_city": "London"}
+{"id": 3, "type": "Airline", "company_name": "Air China (CA)"}
+{"id": 4, "type": "Airline", "company_name": "Ethiopian Airlines (ET)"}
+{"type": "Flight", "client_id": 1, "airline_id": 4, "date": "2026-11-10", "start_city": "London", "end_city": "Johannesburg"}
+{"type": "Flight", "client_id": 1, "airline_id": 3, "date": "2026-11-11", "start_city": "Johannesburg", "end_city": "Hong Kong"}
+{"id": 2, "type": "Client", "name": "Test", "email": "Test@test.co.za", "phone_number": "Test", "city": "Test", "address": "Test", "passport_number": "Test", "nationality": "Test", "emergency_contact": "Test"}

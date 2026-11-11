@@ -3,6 +3,8 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+# pylint: disable=import-error, too-many-instance-attributes
+# pylint: disable=too-many-statements, attribute-defined-outside-init
 from gui.autocomplete import AutocompleteCombobox
 from gui.constants import CITY_TO_NATIONALITY, WORLD_CITIES
 
@@ -10,7 +12,6 @@ from gui.constants import CITY_TO_NATIONALITY, WORLD_CITIES
 # converting internal field names.
 CLIENT_COLUMNS = {
     "client_id": "Client ID",
-    "type": "Record Type",
     "full_name": "Full Name",
     "email": "Email",
     "phone_number": "Phone Number",
@@ -24,7 +25,6 @@ CLIENT_COLUMNS = {
 # Field order used when displaying and filtering client records.
 CLIENT_RECORD_FIELDS = (
     "id",
-    "type",
     "name",
     "email",
     "phone_number",
@@ -35,6 +35,9 @@ CLIENT_RECORD_FIELDS = (
     "emergency_contact",
 )
 
+# Subtle row colours improve horizontal scanning without overpowering the table.
+TABLE_ROW_EVEN = "#FFFFFF"
+TABLE_ROW_ODD = "#F3F7FA"
 
 class ClientTab:
     """
@@ -80,6 +83,19 @@ class ClientTab:
             padx=10,
             pady=10,
         )
+
+        # Widget references initialised for linter compliance
+        self.client_search_var = None
+        self.client_id_entry = None
+        self.client_name_entry = None
+        self.client_email_entry = None
+        self.client_phone_entry = None
+        self.client_city_entry = None
+        self.client_address_entry = None
+        self.client_passport_entry = None
+        self.client_nationality_entry = None
+        self.client_emergency_entry = None
+        self.client_tree = None
 
         self.init_widgets()
 
@@ -276,6 +292,7 @@ class ClientTab:
         ttk.Button(
             button_frame,
             text="Delete",
+            style="Danger.TButton",
             command=self.on_delete_client,
         ).pack(side="left", padx=2)
 
@@ -286,6 +303,17 @@ class ClientTab:
             self.display_frame,
             columns=tuple(CLIENT_COLUMNS),
             show="headings",
+        )
+
+        # Apply restrained alternating row colours to improve record readability.
+        self.client_tree.tag_configure(
+            "even_row",
+            background=TABLE_ROW_EVEN,
+        )
+
+        self.client_tree.tag_configure(
+            "odd_row",
+            background=TABLE_ROW_ODD,
         )
 
         for column, heading in CLIENT_COLUMNS.items():
@@ -333,7 +361,7 @@ class ClientTab:
         # Double-clicking a row loads that client into the editing form.
         self.client_tree.bind("<Double-1>", self.load_to_form)
 
-        self.clear_form()
+        self.clear_form(report_status=False)
 
     def on_city_selected(self, _event=None):
         """Suggest a nationality based on the selected city."""
@@ -467,15 +495,17 @@ class ClientTab:
                 client["emergency_contact"],
             )
 
+            client_name = client["name"]
+
             self.refresh_table()
             self.clear_form()
 
-            messagebox.showinfo(
-                "Success",
-                "Client added successfully.",
+            self.main.update_status(
+                f'Client "{client_name}" added successfully.'
             )
 
         except (TypeError, ValueError) as error:
+            self.main.update_status(f"Client creation failed: {error}")
             messagebox.showerror(
                 "Unable to Add Client",
                 str(error),
@@ -513,7 +543,11 @@ class ClientTab:
                 return
 
             self.refresh_table()
-            self.clear_form()
+            self.clear_form(report_status=False)
+
+            self.main.update_status(
+                f'Client "{updated_data["name"]}" updated successfully.'
+            )
 
             messagebox.showinfo(
                 "Success",
@@ -521,6 +555,7 @@ class ClientTab:
             )
 
         except (TypeError, ValueError) as error:
+            self.main.update_status(f"Client update failed: {error}")
             messagebox.showerror(
                 "Unable to Update Client",
                 str(error),
@@ -531,6 +566,7 @@ class ClientTab:
         selected_items = self.client_tree.selection()
 
         if not selected_items:
+            self.main.update_status("Select a client to delete.")
             messagebox.showwarning(
                 "No Client Selected",
                 "Select a client to delete.",
@@ -548,6 +584,7 @@ class ClientTab:
             "Confirm Deletion",
             f"Delete Client ID {client_id}?",
         ):
+            self.main.update_status("Client deletion cancelled.")
             return
 
         try:
@@ -564,7 +601,11 @@ class ClientTab:
                 return
 
             self.refresh_table()
-            self.clear_form()
+            self.clear_form(report_status=False)
+
+            self.main.update_status(
+                f'Client "{values[1]}" deleted successfully.'
+            )
 
             messagebox.showinfo(
                 "Success",
@@ -573,6 +614,7 @@ class ClientTab:
 
         except ValueError as error:
             # RecordManager protects clients referenced by Flight records.
+            self.main.update_status(f"Client deletion blocked: {error}")
             messagebox.showerror(
                 "Integrity Constraint",
                 str(error),
@@ -591,7 +633,7 @@ class ClientTab:
             "values",
         )
 
-        self.clear_form()
+        self.clear_form(report_status=False)
 
         # Temporarily unlock the generated ID field while loading the record.
         self.set_client_id(values[0])
@@ -607,11 +649,14 @@ class ClientTab:
             self.client_emergency_entry,
         )
 
-        # Values 0 and 1 contain the client ID and record type.
-        for entry, value in zip(form_entries, values[2:]):
+        # Value 0 contains the client ID; the table no longer displays the
+        # redundant Record Type field.
+        for entry, value in zip(form_entries, values[1:]):
             entry.insert(0, value)
 
-    def clear_form(self):
+        self.main.update_status(f'Loaded client "{values[1]}" for editing.')
+
+    def clear_form(self, report_status=True):
         """Clear all client fields and return the form to its initial state."""
         self.set_client_id("")
 
@@ -631,6 +676,9 @@ class ClientTab:
 
         self.client_name_entry.focus_set()
 
+        if report_status:
+            self.main.update_status("Client form cleared.")
+
     @staticmethod
     def client_to_values(client):
         """Convert a client record into the Treeview column order."""
@@ -639,12 +687,22 @@ class ClientTab:
             for field in CLIENT_RECORD_FIELDS
         )
 
-    def insert_client_row(self, client):
-        """Insert one client record into the Treeview."""
+    def insert_client_row(self, client, row_index=None):
+        """Insert one client record using alternating row colours."""
+        if row_index is None:
+            row_index = len(self.client_tree.get_children())
+
+        row_tag = (
+            "even_row"
+            if row_index % 2 == 0
+            else "odd_row"
+        )
+
         self.client_tree.insert(
             "",
             "end",
             values=self.client_to_values(client),
+            tags=(row_tag,),
         )
 
     def clear_tree(self):
@@ -656,30 +714,53 @@ class ClientTab:
         """Reload the client table from the current RecordManager data."""
         self.clear_tree()
 
-        clients = self.rm.search_records(record_type="Client")
-        for client in clients:
-            self.insert_client_row(client)
+        clients = self.rm.search_records(
+            record_type="Client"
+        )
+
+        for row_index, client in enumerate(clients):
+            self.insert_client_row(
+                client,
+                row_index,
+            )
 
         # Client changes affect the choices available when creating flights.
         self.main.refresh_flight_dropdowns()
 
     def filter_client_table(self, *_args):
         """Filter displayed clients against all searchable client fields."""
-        query = self.client_search_var.get().strip().lower()
+        query = self.client_search_var.get().strip().casefold()
 
         self.clear_tree()
 
-        clients = self.rm.search_records(record_type="Client")
+        clients = self.rm.search_records(
+            record_type="Client"
+        )
+
+        matches = []
 
         for client in clients:
             values = self.client_to_values(client)
 
             if not query or any(
-                query in value.lower()
-                for value in values
+                    query in str(value).casefold()
+                    for value in values
             ):
-                self.client_tree.insert(
-                    "",
-                    "end",
-                    values=values,
-                )
+                matches.append(client)
+
+        # Apply alternating colours to the filtered result set rather than
+        # retaining row positions from the full unfiltered collection.
+        for row_index, client in enumerate(matches):
+            self.insert_client_row(
+                client,
+                row_index,
+            )
+
+        if query:
+            self.main.update_status(
+                f"Client search returned {len(matches)} record(s)."
+            )
+        else:
+            self.main.update_status(
+                f"Showing {len(matches)} client record(s)."
+            )
