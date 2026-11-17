@@ -140,9 +140,16 @@ class RecordManager:
                 for record in self.records:
                     file.write(json.dumps(record) + "\n")
             os.replace(temp_name, path)
-        except OSError as exc:
+        except BaseException as exc:
+            # Whatever went wrong (disk error, or a record that is not JSON),
+            # never leave the temporary file behind; the old file is untouched.
             if temp_name and os.path.exists(temp_name):
-                os.unlink(temp_name)
+                try:
+                    os.unlink(temp_name)
+                except OSError:
+                    logger.warning("Could not remove the temporary file %s.", temp_name)
+            if not isinstance(exc, OSError):
+                raise
             logger.error("Could not save records to %s: %s", path, exc)
             raise RecordStorageError(path, exc) from exc
         logger.info("Saved %d record(s) to %s.", len(self.records), path)

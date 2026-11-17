@@ -1,6 +1,7 @@
 """Shared test fixtures: a record manager on a temporary file and sample data."""
 
 import tempfile
+import unittest
 from datetime import date
 from pathlib import Path
 
@@ -42,3 +43,39 @@ def add_sample_records(manager):
     manager.add_airline(1, "British Airways (BA)")
     manager.add_airline(2, "Air France (AF)")
     manager.add_flight(1, 1, "2026-12-01 09:30", "London", "Paris")
+
+
+class StoreTestCase(unittest.TestCase):
+    """Base class: a fresh temporary store, a bridge and a manager per test.
+
+    Tests never touch the real records file; everything lives in a temporary
+    folder that is removed afterwards.
+    """
+
+    def setUp(self):
+        self.store = TempStore()
+        self.addCleanup(self.store.cleanup)
+        self.api, self.rm = self.store.api()
+
+    def create(self, record_type, form):
+        """Create a record through the bridge and require success."""
+        result = self.api.create(record_type, form)
+        self.assertTrue(result["ok"], result)
+        return result
+
+    def seed(self):
+        """Client 1, airline 1 and one flight, created through the bridge."""
+        self.create("Client", CLIENT_FORM)
+        self.create("Airline", AIRLINE_FORM)
+        self.create("Flight", FLIGHT_FORM)
+
+    def stored(self, record_type):
+        """The stored records of one type."""
+        return [r for r in self.rm.records if r["Type"] == record_type]
+
+    def file_lines(self):
+        """Non-empty lines currently in the records file."""
+        if not self.store.data_file.exists():
+            return []
+        text = self.store.data_file.read_text(encoding="utf-8")
+        return [line for line in text.splitlines() if line.strip()]

@@ -144,7 +144,8 @@ class WebApi:  # pylint: disable=too-many-public-methods, too-many-instance-attr
     @staticmethod
     def _parse_int(text):
         text = str(text).strip()
-        if not text.isdigit() or int(text) < 1:
+        # ASCII digits only: str.isdigit() also accepts digits from other scripts.
+        if not (text.isascii() and text.isdigit()) or int(text) < 1:
             raise ValueError("must be a whole number of 1 or more")
         return int(text)
 
