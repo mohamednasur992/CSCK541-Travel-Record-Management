@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-contrast="standard" data-stimulation="standard" data-density="comfortable">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Agent Record Management System</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+    <!-- Screen-reader announcements -->
+    <div id="a11yAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- ============================ HEADER ============================ -->
+    <header class="app-header" role="banner">
+        <a class="header-brand" href="#" data-action="view" data-view="Flight" aria-label="Travel Records – Flights">
+            <img class="brand-logo" src="assets/Logo.png" alt="" height="40">
+            <span class="brand-name">Travel Records</span>
+        </a>
+
+        <nav class="nav-tabs" role="tablist" aria-label="Record types">
+            <button class="tab-btn active" id="tab-Flight" role="tab" aria-selected="true" aria-controls="view-Flight" data-action="view" data-view="Flight" title="Flights (Ctrl+1)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                Flights
+            </button>
+            <button class="tab-btn" id="tab-Client" role="tab" aria-selected="false" aria-controls="view-Client" data-action="view" data-view="Client" title="Clients (Ctrl+2)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Clients
+            </button>
+            <button class="tab-btn" id="tab-Airline" role="tab" aria-selected="false" aria-controls="view-Airline" data-action="view" data-view="Airline" title="Airlines (Ctrl+3)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                Airlines
+            </button>
+        </nav>
+
+        <div class="header-actions">
+            <button class="clock-ticker save-pill" id="savePill" data-action="save-all" title="Save all records now (Ctrl+Shift+S)" aria-live="polite">
+                <span class="clock-dot" aria-hidden="true"></span>
+                <span id="saveText" class="save-text">All changes saved</span>
+            </button>
+            <button class="icon-btn" data-action="help" title="Keyboard shortcuts and data file (F1)" aria-label="Keyboard shortcuts and help">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            </button>
+            <button class="icon-btn" id="displayBtn" data-action="display" aria-haspopup="dialog" aria-expanded="false" aria-controls="displayPanel" title="Display: theme, contrast, effects, density (Ctrl+Shift+D)" aria-label="Display settings">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+            </button>
+            <button class="btn-primary-action" id="headerNewBtn" data-action="new" title="New record (Ctrl+N)">
+                <span id="headerNewText">+ New Flight</span>
+                <kbd class="kbd-hint">Ctrl+N</kbd>
+            </button>
+        </div>
+    </header>
+
+    <!-- ===================== DISPLAY SETTINGS (popover) ================ -->
+    <div class="display-panel" id="displayPanel" role="dialog" aria-modal="false" aria-labelledby="displayTitle" hidden>
+        <div class="display-head">
+            <h2 id="displayTitle">Display</h2>
+            <button type="button" class="icon-btn" data-action="display-close" aria-label="Close display settings">✕</button>
+        </div>
+        <fieldset class="segmented" data-pref="theme">
+            <legend>Theme</legend>
+            <label><input type="radio" name="pref-theme" value="system"><span>System</span></label>
+            <label><input type="radio" name="pref-theme" value="light"><span>Light</span></label>
+            <label><input type="radio" name="pref-theme" value="dark"><span>Dark</span></label>
+        </fieldset>
+        <fieldset class="segmented" data-pref="contrast">
+            <legend>Contrast</legend>
+            <label><input type="radio" name="pref-contrast" value="system"><span>System</span></label>
+            <label><input type="radio" name="pref-contrast" value="standard"><span>Standard</span></label>
+            <label><input type="radio" name="pref-contrast" value="high"><span>High</span></label>
+        </fieldset>
+        <fieldset class="segmented" data-pref="effects">
+            <legend>Effects</legend>
+            <label><input type="radio" name="pref-effects" value="system"><span>System</span></label>
+            <label><input type="radio" name="pref-effects" value="standard"><span>Standard</span></label>
+            <label><input type="radio" name="pref-effects" value="low"><span>Calm</span></label>
+        </fieldset>
+        <fieldset class="segmented" data-pref="density">
+            <legend>Density</legend>
+            <label><input type="radio" name="pref-density" value="comfortable"><span>Comfortable</span></label>
+            <label><input type="radio" name="pref-density" value="compact"><span>Compact</span></label>
+        </fieldset>
+        <p class="display-note"><strong>System</strong> follows your computer's dark-mode, contrast and reduce-motion settings.
+            <strong>Calm</strong> removes blur, glow and motion. <strong>Compact</strong> fits more rows on screen.
+            Saved in <code>settings.json</code> beside the records file.</p>
+    </div>
+
+    <!-- ========================= SUMMARY CARDS ======================== -->
+    <section class="kpi-strip" aria-label="Record summary">
+        <div class="kpi-card">
+            <div class="kpi-header"><span class="kpi-label">Clients</span><span class="spec-badge">DIRECTORY</span></div>
+            <div class="kpi-body">
+                <div class="kpi-value-col">
+                    <span class="kpi-value tabular-nums" id="kpiClients">0</span>
+                    <span class="kpi-delta neutral" id="kpiClientsSub">–</span>
+                </div>
+                <div class="kpi-graphic" aria-hidden="true">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header"><span class="kpi-label">Airlines</span><span class="spec-badge">CARRIERS</span></div>
+            <div class="kpi-body">
+                <div class="kpi-value-col">
+                    <span class="kpi-value tabular-nums" id="kpiAirlines">0</span>
+                    <span class="kpi-delta neutral" id="kpiAirlinesSub">–</span>
+                </div>
+                <div class="kpi-graphic" aria-hidden="true">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header"><span class="kpi-label">Flights</span><span class="spec-badge">MANIFEST</span></div>
+            <div class="kpi-body">
+                <div class="kpi-value-col">
+                    <span class="kpi-value tabular-nums" id="kpiFlights">0</span>
+                    <span class="kpi-delta positive" id="kpiFlightsSub">–</span>
+                </div>
+                <div class="kpi-graphic" id="kpiUpcomingRingWrap" title="Share of flights still to depart">
+                    <svg class="circular-progress-svg" viewBox="0 0 36 36" aria-hidden="true">
+                        <circle class="progress-ring-bg" cx="18" cy="18" r="15.5" />
+                        <circle class="progress-ring-fill" id="kpiUpcomingRing" cx="18" cy="18" r="15.5" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-header"><span class="kpi-label">Next departure</span><span class="spec-badge" style="background:rgba(37,99,235,0.1); color:var(--accent-primary);">LIVE</span></div>
+            <div class="kpi-body">
+                <div class="kpi-value-col">
+                    <span class="kpi-value tabular-nums" id="kpiNext" style="font-size:1.35rem;">—</span>
+                    <span class="kpi-delta neutral" id="kpiNextSub">No upcoming flights</span>
+                </div>
+                <div class="kpi-graphic" aria-hidden="true">
+                    <div class="radar-beacon-wrap">
+                        <div class="radar-ring"></div>
+                        <div class="radar-ring" style="animation-delay: 1.2s;"></div>
+                        <svg class="radar-center-plane" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =========================== WORKSPACE ========================== -->
+    <div class="workspace" id="mainWorkspace">
+
+        <!-- FLIGHTS -->
+        <main class="grid-panel" id="view-Flight" role="tabpanel" aria-labelledby="tab-Flight" data-view="Flight">
+            <div class="route-visualizer-card" id="routeCard" aria-live="polite">
+                <div class="route-visualizer-header">
+                    <div class="route-meta">
+                        <div class="route-city-tag"><span id="routeStartCity">—</span></div>
+                        <span class="route-arrow" aria-hidden="true">⟶</span>
+                        <div class="route-city-tag"><span id="routeEndCity">—</span></div>
+                        <span style="color:var(--text-muted); font-size:0.75rem;">·</span>
+                        <span id="routeAirline" style="font-weight:600; color:var(--text-secondary);">Select a flight</span>
+                    </div>
+                    <div class="route-metrics-bar">
+                        <span>Client: <strong id="routeClient">—</strong></span>
+                        <span>Departure: <strong id="routeDate">—</strong></span>
+                        <span><strong id="routeCountdown">—</strong></span>
+                    </div>
+                </div>
+                <div class="trajectory-canvas-wrap">
+                    <svg class="trajectory-svg" viewBox="0 0 800 48" preserveAspectRatio="none" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#2563EB" /><stop offset="50%" stop-color="#38BDF8" /><stop offset="100%" stop-color="#2563EB" />
+                            </linearGradient>
+                            <filter id="routeGlow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="3" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                        </defs>
+                        <path d="M 40 38 Q 400 4 760 38" fill="none" stroke="var(--border-color)" stroke-width="2" stroke-dasharray="4 4" />
+                        <path id="flightProgressPath" d="M 40 38 Q 400 4 760 38" fill="none" stroke="url(#routeGradient)" stroke-width="3" filter="url(#routeGlow)" stroke-dasharray="800" stroke-dashoffset="800" style="transition: stroke-dashoffset 1s var(--ease-spring);" />
+                        <circle cx="40" cy="38" r="5" fill="var(--accent-primary)" />
+                        <circle cx="760" cy="38" r="5" fill="var(--text-primary)" />
+                        <g id="aircraftGlyph" transform="translate(40, 38)" style="transition: transform 0.8s var(--ease-spring);">
+                            <circle cx="0" cy="0" r="12" fill="var(--accent-primary)" opacity="0.2" /><circle cx="0" cy="0" r="4.5" fill="var(--accent-primary)" />
+                        </g>
+                    </svg>
+                </div>
+            </div>
+            <div class="workspace-toolbar" data-toolbar="Flight"></div>
+            <div class="table-container">
+                <div class="table-scroll" tabindex="-1">
+                    <table role="grid" aria-label="Flights" id="flightTable">
+                        <thead role="rowgroup">
+                            <tr role="row">
+                                <th role="columnheader" class="sortable" data-sort="Date" aria-sort="ascending" tabindex="0">Travel Date</th>
+                                <th role="columnheader" class="sortable" data-sort="client_name" aria-sort="none" tabindex="0">Client</th>
+                                <th role="columnheader" class="sortable" data-sort="airline_name" aria-sort="none" tabindex="0">Airline</th>
+                                <th role="columnheader" class="sortable" data-sort="Start City" aria-sort="none" tabindex="0">Start City</th>
+                                <th role="columnheader" class="sortable" data-sort="End City" aria-sort="none" tabindex="0">Destination</th>
+                            </tr>
+                        </thead>
+                        <tbody role="rowgroup" id="flightTableBody" aria-busy="true">
+                            <tr class="skeleton-row" aria-hidden="true"><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td></tr>
+                            <tr class="skeleton-row" aria-hidden="true"><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td></tr>
+                            <tr class="skeleton-row" aria-hidden="true"><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td><td><div class="skeleton-bar"></div></td></tr>
+                        </tbody>
+                    </table>
+                    <div class="empty-state-card hidden" data-empty="Flight"></div>
+                </div>
+                <div class="table-footer">
+                    <span class="tabular-nums" data-count="Flight"></span>
+                    <span data-system></span>
+                </div>
+            </div>
+        </main>
+
+        <!-- CLIENTS -->
+        <main class="grid-panel hidden" id="view-Client" role="tabpanel" aria-labelledby="tab-Client" data-view="Client">
+            <div class="view-heading"><h2>Client directory</h2><span class="spec-badge">DIRECTORY</span></div>
+            <div class="workspace-toolbar" data-toolbar="Client"></div>
+            <div class="cards-scroll">
+                <div class="cards-grid" id="clientCards" role="list" aria-label="Clients"></div>
+                <div class="empty-state-card hidden" data-empty="Client"></div>
+            </div>
+            <div class="results-footer"><span data-count="Client"></span><span data-system></span></div>
+        </main>
+
+        <!-- AIRLINES -->
+        <main class="grid-panel hidden" id="view-Airline" role="tabpanel" aria-labelledby="tab-Airline" data-view="Airline">
+            <div class="view-heading"><h2>Partner airlines</h2><span class="spec-badge">CARRIERS</span></div>
+            <div class="workspace-toolbar" data-toolbar="Airline"></div>
+            <div class="cards-scroll">
+                <div class="cards-grid" id="airlineCards" role="list" aria-label="Airlines"></div>
+                <div class="empty-state-card hidden" data-empty="Airline"></div>
+            </div>
+            <div class="results-footer"><span data-count="Airline"></span><span data-system></span></div>
+        </main>
+
+        <!-- RECORD FORM (side panel on wide windows; sheet on narrow ones) -->
+        <div class="panel-resizer" id="panelResizer" role="separator" aria-orientation="vertical" aria-controls="recordPanel"
+             aria-label="Resize details panel: drag, click to widen or narrow, or use Left / Right arrow keys" title="Drag to resize · click to widen or narrow · ← → keys" aria-valuemin="360" aria-valuemax="720" aria-valuenow="440" tabindex="0"></div>
+        <aside class="dispatch-panel" id="recordPanel" aria-labelledby="formTitle">
+            <div class="panel-header">
+                <button type="button" class="icon-btn panel-close" data-action="close-panel" aria-label="Back to the list">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <div class="panel-heading-text">
+                    <h2 class="panel-title" id="formTitle" tabindex="-1">Create New Flight</h2>
+                    <span class="panel-subtext" id="formSubtext"></span>
+                </div>
+                <span class="spec-badge" id="formBadge">NEW</span>
+            </div>
+            <div id="formBanner" class="form-banner hidden" role="status"></div>
+            <form id="recordForm" class="form-grid" novalidate autocomplete="off"></form>
+        </aside>
+    </div>
+
+    <div class="sheet-backdrop" id="sheetBackdrop" data-action="close-panel" aria-hidden="true"></div>
+
+    <!-- Narrow windows: primary action in thumb reach, record types at the bottom -->
+    <button type="button" class="fab" id="fabNew" data-action="new" aria-label="New flight">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <span id="fabText">New</span>
+    </button>
+    <nav class="bottom-nav" aria-label="Record types">
+        <button type="button" class="bottom-tab" id="btab-Flight" data-action="view" data-view="Flight" aria-current="page">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg><span>Flights</span>
+        </button>
+        <button type="button" class="bottom-tab" id="btab-Client" data-action="view" data-view="Client">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Clients</span>
+        </button>
+        <button type="button" class="bottom-tab" id="btab-Airline" data-action="view" data-view="Airline">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg><span>Airlines</span>
+        </button>
+    </nav>
+
+    <!-- Toasts and dialog -->
+    <div class="toast-container" id="toastContainer" aria-live="assertive"></div>
+    <div class="modal-overlay" id="dialogOverlay" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+        <div class="modal-card modal-sm">
+            <div class="modal-header">
+                <div class="modal-title-wrap" style="display:flex; align-items:center;">
+                    <span class="dialog-kind info" id="dialogKind" aria-hidden="true">i</span>
+                    <h2 id="dialogTitle" style="font-size:1rem;">Title</h2>
+                </div>
+            </div>
+            <div class="modal-body" id="dialogBody"></div>
+            <div class="modal-actions" id="dialogActions"></div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

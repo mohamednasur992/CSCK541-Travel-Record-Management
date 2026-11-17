@@ -212,8 +212,15 @@ class RecordManager:
     # DELETE OPERATIONS
     # ------------------------------------------------------------------
 
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def delete_record(
-        self, record_id, record_type=None, airline_id=None, date=None
+        self,
+        record_id,
+        record_type=None,
+        airline_id=None,
+        date=None,
+        start_city=None,
+        end_city=None,
     ):
         """Delete a matching record while protecting referenced records."""
         if record_type == "Client":
@@ -257,6 +264,14 @@ class RecordManager:
                 ) != str(airline_id):
                     return False
                 if date is not None and str(r.get("date")) != str(date):
+                    return False
+                if start_city is not None and str(
+                    r.get("start_city")
+                ) != str(start_city):
+                    return False
+                if end_city is not None and str(
+                    r.get("end_city")
+                ) != str(end_city):
                     return False
                 return True
 
