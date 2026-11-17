@@ -1,1 +1,16 @@
-pywebview>=5.0
+# Everything needed to run the application, on every platform:
+#
+#     pip install -r requirements.txt
+#     python src/main.py
+#
+# pywebview shows the HTML interface in a native window. It brings its own
+# platform support on Windows (pythonnet / Edge WebView2, which ships with
+# Windows 10 and 11) and on macOS (WebKit through pyobjc), so one line covers
+# both. Linux has no built-in web view, so the Qt back-end is added there.
+#
+# The tests need nothing else: they use only the standard library
+# (the end-to-end GUI tests also need pywebview and a display).
+#
+# Tested with pywebview 6.2.1 on Windows 11 with Python 3.13.
+pywebview>=5.0; sys_platform != "linux"
+pywebview[qt]>=5.0; sys_platform == "linux"

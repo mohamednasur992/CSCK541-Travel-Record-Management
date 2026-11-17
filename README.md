@@ -69,6 +69,7 @@ Each layer only calls the layers below it: `gui` uses `record`; `record` never i
 * **Python:** 3.8 or higher
 * **Third-party package:** `pywebview` (shows the HTML interface in a desktop window). On Windows it uses
   Microsoft Edge WebView2, which is part of Windows 10 and 11.
+  On macOS it uses the built-in WebKit; on Linux `requirements.txt` adds the Qt back-end (`pywebview[qt]`).
 
 Install it with:
 
@@ -128,14 +129,50 @@ location and options are set in `src/config.py`.
 
 ## Running the Tests
 
-From the project root:
+From the project root, with the virtual environment active (see *System Setup*):
 
 ```bash
 python -m unittest discover -s src/tests -t src
 ```
 
+This runs every test (260 tests, about 21 seconds, including the end-to-end GUI tests that open the real
+window). Without activating the environment, call its Python directly:
+
+```bash
+# Windows
+.venv\Scripts\python.exe -m unittest discover -s src/tests -t src
+
+# macOS / Linux
+.venv/bin/python -m unittest discover -s src/tests -t src
+```
+
+Run one type of test by pointing `-s` at its folder:
+
+```bash
+python -m unittest discover -s src/tests/unit -t src          # unit
+python -m unittest discover -s src/tests/integration -t src   # integration
+python -m unittest discover -s src/tests/negative -t src      # negative and error injection
+python -m unittest discover -s src/tests/nfr -t src           # non-functional
+python -m unittest discover -s src/tests/e2e -t src           # end-to-end GUI
+```
+
+Skip the GUI tests (no window opens; the rest takes about 1 second):
+
+```bash
+# Windows (cmd)
+set RMS_SKIP_GUI=1 && python -m unittest discover -s src/tests -t src
+
+# Windows (PowerShell)
+$env:RMS_SKIP_GUI=1; python -m unittest discover -s src/tests -t src
+
+# macOS / Linux
+RMS_SKIP_GUI=1 python -m unittest discover -s src/tests -t src
+```
+
+Add `-v` to list every test by name.
+
 The tests use temporary files only and never change `record.jsonl`. They are sorted into one folder per
-test type under `src/tests/`. Run one type with `-s src/tests/<folder>`.
+test type under `src/tests/`.
 
 | Folder | Type | Contents |
 |---|---|---|
