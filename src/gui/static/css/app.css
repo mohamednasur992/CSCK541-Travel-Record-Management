@@ -1178,6 +1178,21 @@
             position: relative;
         }
 
+        /* Date picker beside a native time field: "YYYY-MM-DD" + "HH:MM". */
+        .date-time-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 7.5rem;
+            gap: 8px;
+        }
+        .time-input {
+            height: 40px;
+            font-variant-numeric: tabular-nums;
+            color-scheme: light dark;
+        }
+        @media (max-width: 480px) {
+            .date-time-row { grid-template-columns: 1fr; }
+        }
+
         .custom-datetime-trigger {
             height: 40px;
             padding: 0 14px;

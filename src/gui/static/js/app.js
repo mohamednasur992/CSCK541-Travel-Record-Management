@@ -79,8 +79,9 @@
     let t = null;
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
   }
+  // Flight dates are "YYYY-MM-DD HH:MM"; the calendar works on the date part.
   function parseDate(text) {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text || '');
+    const m = /^(\d{4})-(\d{2})-(\d{2})(?: \d{2}:\d{2})?$/.exec(text || '');
     if (!m) return null;
     const d = new Date(+m[1], +m[2] - 1, +m[3]);
     return d.getMonth() === +m[2] - 1 ? d : null;
@@ -88,7 +89,8 @@
   const dateText = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   function niceDate(text) {
     const d = parseDate(text);
-    return d ? `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getFullYear()}` : '';
+    const time = /\d{2}:\d{2}$/.exec(text || '');
+    return d ? `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getFullYear()}${time ? ' · ' + time[0] : ''}` : '';
   }
   function countdown(text) {
     const d = parseDate(text);
@@ -409,11 +411,11 @@
       const selected = sameKey(r.key, state.selected[view]);
       const flights = `${r.flights} flight${r.flights === 1 ? '' : 's'}`;
       if (view === 'Client') {
-        const place = [r.City, r.Nationality].filter(Boolean).join(' · ');
+        const place = [r.City, r.State, r['Zip Code'], r.Country].filter(Boolean).join(', ');
         return `<div class="entity-card${selected ? ' selected' : ''}" role="listitem" tabindex="0" data-key="${esc(r.ID)}" aria-selected="${selected}">` +
           `<div class="entity-title"><span style="display:flex; align-items:center; gap:10px;"><span class="option-avatar" style="background:${colourFor(r.Name)}">${esc(initials(r.Name))}</span><strong>${esc(r.Name)}</strong></span>` +
           `<span class="tier-indicator">#${esc(r.ID)}</span></div>` +
-          `<span class="entity-sub">${esc(r.Email || 'No email')}</span>` +
+          `<span class="entity-sub">${esc(r['Address Line 1'] || 'No address')}</span>` +
           `<span class="entity-sub">${esc(place || 'No city')}</span>` +
           `<div class="entity-meta"><span>Phone: <strong class="tabular-nums">${esc(r['Phone Number'] || '—')}</strong></span><span><strong>${flights}</strong></span></div></div>`;
       }
@@ -537,7 +539,7 @@
         `<input type="text" class="text-input${isCity ? ' text-input-icon' : ''}" id="${id}" name="${esc(name)}" maxlength="${f.max_length}" ${f.required ? 'aria-required="true"' : ''} autocomplete="off" placeholder="${isCity ? 'e.g. ' + ({ 'Start City': 'Johannesburg', 'End City': 'London', City: 'Johannesburg', 'Company Name': 'Emirates (EK)' })[name] : ''}">` +
         (isCity ? `</div><div class="airport-autocomplete-popover" id="${id}-suggest" role="listbox"></div>` : '');
       const input = row.querySelector('input');
-      input.addEventListener('input', () => { markDirty(); clearFieldError(name); if (isCity) { showCitySuggestions(input); checkRouteConflict(); suggestNationality(input); } });
+      input.addEventListener('input', () => { markDirty(); clearFieldError(name); if (isCity) { showCitySuggestions(input); checkRouteConflict(); suggestCountry(input); } });
       if (isCity) attachCitySuggest(input);
       ui.form.inputs[name] = { kind: 'text', input, focusEl: input };
     }
@@ -552,10 +554,17 @@
 
   /* -------------------------------------------------------- date picker */
   const cal = { year: 2026, month: 0, day: 1 };
+  const DEFAULT_TIME = '09:00';
+  /** The value sent to Python: "YYYY-MM-DD HH:MM" (or what the user has so far, for validation). */
+  function dateTimeValue() {
+    const time = $('#timeInput').value;
+    return state.date && time ? `${state.date} ${time}` : state.date;
+  }
   function datePickerHtml() {
-    return '<div class="custom-datetime-trigger" id="dateTrigger" tabindex="0" role="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Choose travel date">' +
+    return '<div class="date-time-row"><div class="custom-datetime-trigger" id="dateTrigger" tabindex="0" role="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Choose travel date">' +
       '<div class="trigger-content"><svg class="trigger-cal-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
       '<span class="trigger-text" id="dateDisplay"><span class="placeholder-text">Choose date…</span></span></div>' + CHEVRON_SVG + '</div>' +
+      '<input type="time" class="text-input time-input" id="timeInput" aria-label="Departure time" step="300"></div>' +
       '<div class="calendar-popover" id="calendarPopover" role="dialog" aria-label="Travel date picker">' +
       '<div class="cal-header"><button type="button" class="cal-nav-btn" data-cal="prev" aria-label="Previous month">‹</button><span class="cal-month-title" id="calMonthTitle"></span><button type="button" class="cal-nav-btn" data-cal="next" aria-label="Next month">›</button></div>' +
       '<div class="cal-weekdays"><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span></div>' +
@@ -566,8 +575,14 @@
         .map(([k, l]) => `<button type="button" class="preset-pill-btn" data-preset="${k}">${l}</button>`).join('') + '</div>' +
       '<span id="dateCountdown" class="countdown-chip"></span>';
   }
+  /** Set the flight date ("YYYY-MM-DD") and optionally time ("YYYY-MM-DD HH:MM"). */
   function setDate(text, { dirty = true } = {}) {
-    state.date = text || '';
+    const [day, time] = (text || '').split(' ');
+    state.date = day || '';
+    const timeInput = $('#timeInput');
+    if (time) timeInput.value = time;
+    else if (!state.date) timeInput.value = '';
+    else if (!timeInput.value) timeInput.value = DEFAULT_TIME;     // a date needs a time; 09:00 until changed
     const d = parseDate(state.date);
     $('#dateDisplay').innerHTML = d ? esc(niceDate(state.date)) : '<span class="placeholder-text">Choose date…</span>';
     const chip = $('#dateCountdown');
@@ -693,12 +708,12 @@
     markDirty();
     clearFieldError(input.name);
     checkRouteConflict();
-    suggestNationality(input);
+    suggestCountry(input);
   }
-  function suggestNationality(input) {
-    const nat = ui.form.inputs.Nationality;
+  function suggestCountry(input) {
+    const nat = ui.form.inputs.Country;
     if (input.name !== 'City' || !nat || nat.input.value.trim()) return;
-    const found = state.meta.city_nationality[input.value.trim()];
+    const found = state.meta.city_country[input.value.trim()];
     if (found) nat.input.value = found;
   }
   function checkRouteConflict() {
@@ -786,7 +801,7 @@
     } else {
       const name = record ? (record.Name || record['Company Name']) : '';
       $('#formTitle').textContent = editing ? `Edit ${view} #${record.ID}` : `Create New ${view}`;
-      $('#formSubtext').textContent = editing ? `${name} · the ID cannot be changed` : (view === 'Client' ? "Add a client's contact and passport details." : 'Add an airline company.');
+      $('#formSubtext').textContent = editing ? `${name} · the ID cannot be changed` : (view === 'Client' ? "Add a client's name, address and phone number." : 'Add an airline company.');
     }
     checkRouteConflict();
     setClean();
@@ -809,7 +824,7 @@
     const data = {};
     Object.entries(ui.form.inputs).forEach(([name, inp]) => {
       if (inp.kind === 'select') data[name] = inp.select.getValue() === '' ? '' : String(inp.select.getValue());
-      else if (inp.kind === 'date') data[name] = state.date;
+      else if (inp.kind === 'date') data[name] = dateTimeValue();
       else data[name] = inp.input.value;
     });
     if (state.view !== 'Flight' && ui.form.inputs.ID.input.disabled) data.ID = String(state.selected[state.view]);
@@ -935,6 +950,8 @@
     announce(`Editing ${view.toLowerCase()} ${view === 'Flight' ? rec.Date : rec.ID}`);
   }
   function applySnapshot(snap) {
+    // The change was made but the file could not be written; Python keeps it and saves again on close.
+    if (snap.save_error) toast('warning', 'Change kept, but not yet saved to the file', snap.save_error, { duration: 10000 });
     state.records = snap.records;
     state.choices = snap.choices;
     state.nextId = snap.next_id;
@@ -1273,6 +1290,21 @@
     }
   };
 
+  /* --------------------------------------------- error reporting to Python */
+  // Unexpected script errors are written to the program's log file, so they can be diagnosed later.
+  function reportError(message, source, line) {
+    try {
+      if (window.pywebview && window.pywebview.api && window.pywebview.api.log_client_error) {
+        window.pywebview.api.log_client_error(String(message), String(source || ''), Number(line) || 0);
+      }
+    } catch (e) { /* reporting must never cause a second error */ }
+  }
+  window.addEventListener('error', (e) => reportError(e.message, e.filename, e.lineno));
+  window.addEventListener('unhandledrejection', (e) => {
+    const r = e.reason;
+    reportError(r && r.stack ? r.stack : (r && r.message) || r, 'promise', 0);
+  });
+
   /* -------------------------------------------------------------- start */
   async function start() {
     if (api) return;
@@ -1280,6 +1312,7 @@
     let boot;
     try {
       boot = await api.bootstrap();
+      if (!boot.ok) throw new Error(boot.error);
     } catch (err) {
       document.body.setAttribute('data-ready', 'error');
       $('#formBanner').className = 'form-banner error';
