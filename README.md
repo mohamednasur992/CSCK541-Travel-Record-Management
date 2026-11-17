@@ -134,21 +134,19 @@ From the project root:
 python -m unittest discover -s src/tests -t src
 ```
 
-The tests use temporary files only and never change `record.jsonl`. They do not need a display or pywebview.
+The tests use temporary files only and never change `record.jsonl`. They are sorted into one folder per
+test type under `src/tests/`. Run one type with `-s src/tests/<folder>`.
 
-| Test file | What it checks |
-|---|---|
-| `test_travel_records.py` | `RecordManager` create, search, update, delete; duplicate IDs; delete protection |
-| `test_travel_persistence.py` | JSON Lines save/load, start-up check, upgrade of earlier-format files, damaged-file backup, atomic save failures |
-| `test_flight_booking_rule.py` | The same-day journey rule for creating, updating and deleting flights |
-| `test_travel_error_handling.py` | Field validation messages, contained unexpected errors, save failures, logging |
-| `test_travel_e2e_integration.py` | A full workflow through the page's API, reloaded from disk |
-| `test_travel_ui.py` | Data the page displays: forms, rows, choices, summary, search, preferences |
-| `test_travel_autocomplete.py` | Airline, city and country suggestions |
-| `test_schema_and_config.py` | Brief field names, date/time format, exceptions, settings constants, form layout, display preferences |
-| `test_launcher.py` | Window creation and save-on-close behaviour |
-| `test_main.py` | Start-up, missing pywebview, Ctrl+C, unexpected errors and the final save |
-| `test_app_logging.py` | Log file rotation, console output and fallback when the log folder is read-only |
+| Folder | Type | Contents |
+|---|---|---|
+| `unit/` | Unit | `RecordManager`, the flight journey rule, the bridge's validation and operations (FR-01 to FR-21), schema and config, logging, launcher, `main` |
+| `integration/` | Integration | Persistence and the JSON Lines file (FR-22 to FR-27), full workflows, restarts, preferences, start-up to shutdown |
+| `negative/` | Negative and error injection | Forced save and disk failures, damaged files, malformed and hostile input, broken log destination, parallel calls |
+| `nfr/` | Non-functional | Dependencies, no network or database, responsiveness, layering, docstrings, privacy, error wording |
+| `e2e/` | End-to-end GUI | Opens the real window and clicks and types in the real page (about 25 seconds) |
+
+The end-to-end tests need `pywebview` and a display; they skip themselves otherwise, or when `RMS_SKIP_GUI=1`
+is set. `docs/requirements/03_Test_Traceability.md` lists which tests verify which requirement.
 
 ---
 
