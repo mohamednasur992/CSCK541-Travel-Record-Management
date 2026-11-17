@@ -1,10 +1,10 @@
-{"id": 1, "type": "Client", "name": "Abe Maduna", "email": "mmaduna@liverpool.ac.uk", "phone_number": "+832878260", "city": "Johannesburg", "address": "100, 9th Street", "passport_number": "test", "nationality": "South African", "emergency_contact": "+832007335"}
-{"id": 1, "type": "Airline", "company_name": "South African Airways (SA)"}
-{"id": 2, "type": "Airline", "company_name": "Emirates (EK)"}
-{"type": "Flight", "client_id": 1, "airline_id": 1, "date": "2026-11-09", "start_city": "Johannesburg", "end_city": "Moscow"}
-{"type": "Flight", "client_id": 1, "airline_id": 2, "date": "2026-11-09", "start_city": "Moscow", "end_city": "London"}
-{"id": 3, "type": "Airline", "company_name": "Air China (CA)"}
-{"id": 4, "type": "Airline", "company_name": "Ethiopian Airlines (ET)"}
-{"type": "Flight", "client_id": 1, "airline_id": 4, "date": "2026-11-10", "start_city": "London", "end_city": "Johannesburg"}
-{"type": "Flight", "client_id": 1, "airline_id": 3, "date": "2026-11-11", "start_city": "Johannesburg", "end_city": "Hong Kong"}
-{"id": 2, "type": "Client", "name": "Test", "email": "Test@test.co.za", "phone_number": "Test", "city": "Test", "address": "Test", "passport_number": "Test", "nationality": "Test", "emergency_contact": "Test"}
+{"ID": 1, "Type": "Client", "Name": "Abe Maduna", "Address Line 1": "100, 9th Street", "Address Line 2": "", "Address Line 3": "", "City": "Johannesburg", "State": "", "Zip Code": "", "Country": "South Africa", "Phone Number": "+832878260"}
+{"ID": 1, "Type": "Airline", "Company Name": "South African Airways (SA)"}
+{"ID": 2, "Type": "Airline", "Company Name": "Emirates (EK)"}
+{"Type": "Flight", "Client_ID": 1, "Airline_ID": 1, "Date": "2026-11-09 08:00", "Start City": "Johannesburg", "End City": "Moscow"}
+{"Type": "Flight", "Client_ID": 1, "Airline_ID": 2, "Date": "2026-11-09 15:00", "Start City": "Moscow", "End City": "London"}
+{"ID": 3, "Type": "Airline", "Company Name": "Air China (CA)"}
+{"ID": 4, "Type": "Airline", "Company Name": "Ethiopian Airlines (ET)"}
+{"Type": "Flight", "Client_ID": 1, "Airline_ID": 4, "Date": "2026-11-10 08:00", "Start City": "London", "End City": "Johannesburg"}
+{"Type": "Flight", "Client_ID": 1, "Airline_ID": 3, "Date": "2026-11-11 08:00", "Start City": "Johannesburg", "End City": "Hong Kong"}
+{"ID": 2, "Type": "Client", "Name": "Test", "Address Line 1": "Test", "Address Line 2": "", "Address Line 3": "", "City": "Test", "State": "", "Zip Code": "", "Country": "", "Phone Number": "Test"}
