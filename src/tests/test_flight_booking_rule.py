@@ -1,35 +1,8 @@
 """Headless tests for the linear same-day connected-flight rule."""
 
-import sys
-import types
 import unittest
-from pathlib import Path
 
-
-# The build environment has no Tk runtime. These minimal stubs allow the
-# flight-tab module to be imported without creating or rendering any widgets.
-tkinter_stub = types.ModuleType("tkinter")
-tkinter_stub.END = "end"
-tkinter_stub.messagebox = types.SimpleNamespace()
-tkinter_stub.ttk = types.SimpleNamespace()
-sys.modules.setdefault("tkinter", tkinter_stub)
-
-tkcalendar_stub = types.ModuleType("tkcalendar")
-tkcalendar_stub.DateEntry = object
-sys.modules.setdefault("tkcalendar", tkcalendar_stub)
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
-
-autocomplete_stub = types.ModuleType("gui.autocomplete")
-autocomplete_stub.AutocompleteCombobox = object
-sys.modules.setdefault("gui.autocomplete", autocomplete_stub)
-
-constants_stub = types.ModuleType("gui.constants")
-constants_stub.WORLD_CITIES = ()
-sys.modules.setdefault("gui.constants", constants_stub)
-
-from gui.flight_tab import FlightTab  # noqa: E402  pylint: disable=wrong-import-position
+from record.flight_rules import FlightBookingRules
 
 
 class FakeRecordManager:
@@ -45,37 +18,42 @@ class FakeRecordManager:
 
 
 def make_tab(records, original=None):
-    """Construct a FlightTab without running its Tk-dependent initializer."""
-    tab = object.__new__(FlightTab)
-    tab.rm = FakeRecordManager(records)
+    """Booking rules over ``records``, optionally editing ``original``."""
+    tab = FlightBookingRules(FakeRecordManager(records))
     tab.original_flight_key = original
     return tab
 
 
 FIRST_LEG = {
-    "type": "Flight",
-    "client_id": 1,
-    "airline_id": 1,
-    "date": "2026-11-09",
-    "start_city": "Johannesburg",
-    "end_city": "Moscow",
+    "Type": "Flight",
+    "Client_ID": 1,
+    "Airline_ID": 1,
+    "Date": "2026-11-09 08:00",
+    "Start City": "Johannesburg",
+    "End City": "Moscow",
 }
 SECOND_LEG = {
     **FIRST_LEG,
-    "airline_id": 2,
-    "start_city": "Moscow",
-    "end_city": "London",
+    "Airline_ID": 2,
+    "Date": "2026-11-09 14:30",
+    "Start City": "Moscow",
+    "End City": "London",
 }
 THIRD_LEG = {
     **FIRST_LEG,
-    "airline_id": 3,
-    "start_city": "London",
-    "end_city": "Paris",
+    "Airline_ID": 3,
+    "Date": "2026-11-09 21:15",
+    "Start City": "London",
+    "End City": "Paris",
 }
 
 
 class BookingDateConflictTests(unittest.TestCase):
-    """Verify one ordered, non-branching journey per client and date."""
+    """Verify one ordered, non-branching journey per client and calendar day."""
+
+    def test_legs_at_different_times_on_one_day_form_one_journey(self):
+        unconnected_later_flight = {**SECOND_LEG, "Date": "2026-11-09 23:59", "Start City": "Accra"}
+        self.assertTrue(make_tab([FIRST_LEG]).has_booking_date_conflict(unconnected_later_flight))
 
     def test_first_flight_on_date_is_allowed(self):
         self.assertFalse(make_tab([]).has_booking_date_conflict(FIRST_LEG))
@@ -88,7 +66,7 @@ class BookingDateConflictTests(unittest.TestCase):
     def test_city_matching_ignores_case_and_surrounding_whitespace(self):
         candidate = {
             **SECOND_LEG,
-            "start_city": "  mOsCoW  ",
+            "Start City": "  mOsCoW  ",
         }
         self.assertFalse(
             make_tab([FIRST_LEG]).has_booking_date_conflict(candidate)
@@ -103,8 +81,8 @@ class BookingDateConflictTests(unittest.TestCase):
     def test_second_outgoing_flight_from_reached_city_is_blocked(self):
         branch = {
             **SECOND_LEG,
-            "airline_id": 4,
-            "end_city": "Amsterdam",
+            "Airline_ID": 4,
+            "End City": "Amsterdam",
         }
         tab = make_tab([FIRST_LEG, SECOND_LEG])
         message = tab.booking_conflict_message(branch)
@@ -114,8 +92,8 @@ class BookingDateConflictTests(unittest.TestCase):
     def test_third_leg_must_start_from_latest_destination(self):
         stale_connection = {
             **THIRD_LEG,
-            "start_city": "Moscow",
-            "end_city": "Paris",
+            "Start City": "Moscow",
+            "End City": "Paris",
         }
         self.assertTrue(
             make_tab([FIRST_LEG, SECOND_LEG]).has_booking_date_conflict(
@@ -133,8 +111,8 @@ class BookingDateConflictTests(unittest.TestCase):
     def test_unconnected_same_day_flight_is_blocked(self):
         candidate = {
             **SECOND_LEG,
-            "start_city": "Accra",
-            "end_city": "Amsterdam",
+            "Start City": "Accra",
+            "End City": "Amsterdam",
         }
         tab = make_tab([FIRST_LEG])
         message = tab.booking_conflict_message(candidate)
@@ -144,14 +122,14 @@ class BookingDateConflictTests(unittest.TestCase):
     def test_reusing_an_earlier_start_city_is_blocked(self):
         loop = {
             **THIRD_LEG,
-            "start_city": "London",
-            "end_city": "Johannesburg",
+            "Start City": "London",
+            "End City": "Johannesburg",
         }
         repeated_departure = {
             **THIRD_LEG,
-            "airline_id": 4,
-            "start_city": "Johannesburg",
-            "end_city": "Cape Town",
+            "Airline_ID": 4,
+            "Start City": "Johannesburg",
+            "End City": "Cape Town",
         }
         tab = make_tab([FIRST_LEG, SECOND_LEG, loop])
         message = tab.booking_conflict_message(repeated_departure)
@@ -161,8 +139,8 @@ class BookingDateConflictTests(unittest.TestCase):
     def test_different_date_is_allowed(self):
         candidate = {
             **SECOND_LEG,
-            "date": "2026-11-10",
-            "start_city": "Accra",
+            "Date": "2026-11-10 08:00",
+            "Start City": "Accra",
         }
         self.assertFalse(
             make_tab([FIRST_LEG]).has_booking_date_conflict(candidate)
@@ -171,8 +149,8 @@ class BookingDateConflictTests(unittest.TestCase):
     def test_different_client_is_allowed(self):
         candidate = {
             **SECOND_LEG,
-            "client_id": 2,
-            "start_city": "Accra",
+            "Client_ID": 2,
+            "Start City": "Accra",
         }
         self.assertFalse(
             make_tab([FIRST_LEG]).has_booking_date_conflict(candidate)
@@ -181,7 +159,7 @@ class BookingDateConflictTests(unittest.TestCase):
     def test_update_replaces_original_leg_in_place(self):
         updated_second_leg = {
             **SECOND_LEG,
-            "airline_id": 5,
+            "Airline_ID": 5,
         }
         tab = make_tab(
             [FIRST_LEG, SECOND_LEG, THIRD_LEG],
@@ -196,7 +174,7 @@ class BookingDateConflictTests(unittest.TestCase):
     def test_update_cannot_break_following_connection(self):
         updated_second_leg = {
             **SECOND_LEG,
-            "end_city": "Amsterdam",
+            "End City": "Amsterdam",
         }
         tab = make_tab(
             [FIRST_LEG, SECOND_LEG, THIRD_LEG],
@@ -211,8 +189,8 @@ class BookingDateConflictTests(unittest.TestCase):
     def test_update_cannot_move_middle_leg_out_of_existing_journey(self):
         moved_second_leg = {
             **SECOND_LEG,
-            "client_id": 2,
-            "date": "2026-11-10",
+            "Client_ID": 2,
+            "Date": "2026-11-10 08:00",
         }
         tab = make_tab(
             [FIRST_LEG, SECOND_LEG, THIRD_LEG],
@@ -223,6 +201,14 @@ class BookingDateConflictTests(unittest.TestCase):
         )
         self.assertIsNotNone(message)
         self.assertIn("break the remaining", message)
+
+    def test_deleting_the_last_leg_is_allowed(self):
+        self.assertIsNone(make_tab([FIRST_LEG, SECOND_LEG]).deletion_conflict_message(SECOND_LEG))
+
+    def test_deleting_a_middle_leg_is_blocked(self):
+        message = make_tab([FIRST_LEG, SECOND_LEG, THIRD_LEG]).deletion_conflict_message(SECOND_LEG)
+        self.assertIsNotNone(message)
+        self.assertIn("cannot be deleted", message)
 
     def test_update_ignores_original_when_it_is_only_leg(self):
         tab = make_tab([FIRST_LEG], original=FIRST_LEG.copy())

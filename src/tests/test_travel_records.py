@@ -1,96 +1,103 @@
+"""RecordManager: create, search, update and delete records in memory."""
+
 import unittest
-from datetime import datetime
+
+from record.errors import DuplicateRecordError, ReferencedRecordError
+from tests.helpers import TempStore, add_sample_records
 
 
-# Example dummy classes representing your core logic for testing purposes
-class TravelRecordManager:
-    def __init__(self):
-        self.records = []
-
-    def add_record(self, record):
-        if not self._validate_record(record):
-            raise ValueError("Invalid record data")
-        self.records.append(record)
-
-    def _validate_record(self, record):
-        # Basic validation rules
-        required_fields = ['flight_no', 'origin', 'destination', 'date']
-        for field in required_fields:
-            if not record.get(field):
-                return False
-        # Validate date format (YYYY-MM-DD)
-        try:
-            datetime.strptime(record['date'], '%Y-%m-%d')
-        except ValueError:
-            return False
-        return True
-
-    def sort_records(self, key, reverse=False):
-        return sorted(self.records, key=lambda x: x.get(key, ''), reverse=reverse)
-
-    def filter_records(self, query):
-        query = query.lower()
-        return [
-            r for r in self.records
-            if query in r['flight_no'].lower() or
-               query in r['origin'].lower() or
-               query in r['destination'].lower()
-        ]
-
-
-class TestTravelRecordManager(unittest.TestCase):
-
+class RecordManagerTestCase(unittest.TestCase):
     def setUp(self):
-        """Initialize a fresh manager and sample data before each test."""
-        self.manager = TravelRecordManager()
-        self.sample_record = {
-            'flight_no': 'FA123',
-            'origin': 'JNB',
-            'destination': 'CPT',
-            'date': '2026-11-15'
-        }
+        self.store = TempStore()
+        self.addCleanup(self.store.cleanup)
+        self.rm = self.store.manager()
+        add_sample_records(self.rm)
 
-    def test_add_valid_record(self):
-        """Test adding a correctly formatted travel record."""
-        self.manager.add_record(self.sample_record)
-        self.assertEqual(len(self.manager.records), 1)
-        self.assertEqual(self.manager.records[0]['flight_no'], 'FA123')
 
-    def test_add_invalid_date_format(self):
-        """Test that invalid date formats raise a ValueError."""
-        invalid_record = self.sample_record.copy()
-        invalid_record['date'] = '15/11/2026'  # Incorrect format
+class TestCreate(RecordManagerTestCase):
+    def test_records_are_one_list_of_dictionaries_with_a_type(self):
+        self.assertIsInstance(self.rm.records, list)
+        self.assertTrue(all(isinstance(r, dict) for r in self.rm.records))
+        self.assertEqual([r["Type"] for r in self.rm.records], ["Client", "Airline", "Airline", "Flight"])
+
+    def test_client_fields_and_integer_id(self):
+        client = self.rm.add_client("7", "Grace Hopper", "5 Navy Rd", "", "", "New York", "NY", "10001",
+                                    "United States", "+1 212 555 0100")
+        self.assertEqual(client["ID"], 7)
+        # Exactly the client fields named in the assignment brief.
+        self.assertEqual(list(client), ["ID", "Type", "Name", "Address Line 1", "Address Line 2", "Address Line 3",
+                                        "City", "State", "Zip Code", "Country", "Phone Number"])
+
+    def test_flight_ids_become_integers(self):
+        flight = self.rm.add_flight("1", "2", "2026-12-02 10:00", "Paris", "Rome")
+        self.assertEqual((flight["Client_ID"], flight["Airline_ID"]), (1, 2))
+
+    def test_duplicate_ids_are_rejected(self):
+        with self.assertRaises(DuplicateRecordError):
+            self.rm.add_client(1, "Someone", "2 High St", "", "", "Leeds", "", "", "United Kingdom", "+44 113 000 0000")
+        with self.assertRaises(ValueError):          # still a ValueError for older callers
+            self.rm.add_airline(2, "Another")
+        self.assertEqual(len(self.rm.records), 4)
+
+    def test_non_numeric_id_is_rejected(self):
         with self.assertRaises(ValueError):
-            self.manager.add_record(invalid_record)
+            self.rm.add_airline("abc", "Bad")
 
-    def test_missing_mandatory_field(self):
-        """Test that missing required fields are rejected."""
-        invalid_record = self.sample_record.copy()
-        invalid_record['origin'] = ''  # Empty origin
+
+class TestSearch(RecordManagerTestCase):
+    def test_filter_by_type_and_keyword(self):
+        self.assertEqual(len(self.rm.search_records(record_type="Airline")), 2)
+        self.assertEqual(len(self.rm.search_records("LONDON")), 2)       # client city and flight start
+        self.assertEqual(len(self.rm.search_records("paris", record_type="Flight")), 1)
+        self.assertEqual(self.rm.search_records("nothing-matches"), [])
+
+    def test_get_record_by_id(self):
+        self.assertEqual(self.rm.get_record_by_id("2", record_type="Airline")["Company Name"], "Air France (AF)")
+        self.assertIsNone(self.rm.get_record_by_id(9))
         with self.assertRaises(ValueError):
-            self.manager.add_record(invalid_record)
-
-    def test_dynamic_sorting(self):
-        """Test sorting records dynamically by keys like flight_no or date."""
-        self.manager.add_record({'flight_no': 'ZB456', 'origin': 'DUR', 'destination': 'JNB', 'date': '2026-11-10'})
-        self.manager.add_record({'flight_no': 'AA111', 'origin': 'PLZ', 'destination': 'JNB', 'date': '2026-11-12'})
-
-        sorted_res = self.manager.sort_records(key='flight_no')
-        self.assertEqual(sorted_res[0]['flight_no'], 'AA111')
-        self.assertEqual(sorted_res[1]['flight_no'], 'ZB456')
-
-    def test_search_filtering(self):
-        """Test keyword filtering for the table view."""
-        self.manager.add_record({'flight_no': 'BA055', 'origin': 'JNB', 'destination': 'LHR', 'date': '2026-12-01'})
-        self.manager.add_record({'flight_no': 'SA312', 'origin': 'CPT', 'destination': 'JNB', 'date': '2026-12-05'})
-
-        results = self.manager.filter_records('JNB')
-        self.assertEqual(len(results), 2)
-
-        results_flight = self.manager.filter_records('BA055')
-        self.assertEqual(len(results_flight), 1)
-        self.assertEqual(results_flight[0]['destination'], 'LHR')
+            self.rm.get_record_by_id("x")
 
 
-if __name__ == '__main__':
+class TestUpdate(RecordManagerTestCase):
+    def test_update_client(self):
+        self.assertTrue(self.rm.update_record(1, {"City": "Paris"}, record_type="Client"))
+        self.assertEqual(self.rm.get_record_by_id(1, "Client")["City"], "Paris")
+
+    def test_update_flight_by_its_identifying_fields(self):
+        changed = self.rm.update_record(1, {"end_city": "Rome"}, record_type="Flight", old_airline_id=1,
+                                        old_date="2026-12-01 09:30", old_start="London", old_end="Paris")
+        self.assertTrue(changed)
+        self.assertEqual(self.rm.search_records(record_type="Flight")[0]["end_city"], "Rome")
+
+    def test_update_missing_record_returns_false(self):
+        self.assertFalse(self.rm.update_record(99, {"Name": "x"}, record_type="Client"))
+        self.assertFalse(self.rm.update_record(1, {}, record_type="Flight", old_date="1999-01-01"))
+
+
+class TestDelete(RecordManagerTestCase):
+    def test_referenced_client_and_airline_cannot_be_deleted(self):
+        with self.assertRaises(ReferencedRecordError):
+            self.rm.delete_record(1, record_type="Client")
+        with self.assertRaises(ValueError):
+            self.rm.delete_record(1, record_type="Airline")
+        self.assertEqual(len(self.rm.records), 4)
+
+    def test_delete_flight_then_its_client(self):
+        self.assertTrue(self.rm.delete_record(1, record_type="Flight", airline_id=1, date="2026-12-01 09:30",
+                                              start_city="London", end_city="Paris"))
+        self.assertTrue(self.rm.delete_record(1, record_type="Client"))
+        self.assertIsNone(self.rm.get_record_by_id(1, "Client"))
+
+    def test_unreferenced_airline_and_missing_record(self):
+        self.assertTrue(self.rm.delete_record(2, record_type="Airline"))
+        self.assertFalse(self.rm.delete_record(2, record_type="Airline"))
+
+    def test_changes_are_not_written_until_saved(self):
+        self.rm.delete_record(2, record_type="Airline")
+        self.assertFalse(self.store.data_file.exists())
+        self.rm.save_to_file()
+        self.assertEqual(len(self.store.manager().records), 3)
+
+
+if __name__ == "__main__":
     unittest.main()

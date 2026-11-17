@@ -1,101 +1,108 @@
-import unittest
-import os
+"""RecordManager persistence: JSON Lines save/load, start-up check, damaged files, failed saves."""
+
 import json
-import tempfile
+import os
+import unittest
+from unittest import mock
+
+import config
+from record.errors import RecordStorageError
+from record.record import RecordManager
+from tests.helpers import TempStore, add_sample_records
 
 
-class TravelPersistenceManager:
-    def __init__(self, filepath="travel_records.json"):
-        self.filepath = filepath
-
-    def save_records(self, records):
-        """Save a list of travel record dictionaries to a JSON file."""
-        try:
-            with open(self.filepath, 'w', encoding='utf-8') as f:
-                json.dump(records, f, indent=4)
-            return True
-        except Exception as e:
-            # Handle disk write errors gracefully
-            return False
-
-    def load_records(self):
-        """Load travel records from the JSON file. Returns empty list if file doesn't exist or is corrupted."""
-        if not os.path.exists(self.filepath):
-            return []
-        try:
-            with open(self.filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    return data
-                return []
-        except (json.JSONDecodeError, IOError):
-            # Graceful recovery/handling for corrupted files
-            return []
-
-    def append_record(self, new_record):
-        """Append a single record while preserving existing entries."""
-        records = self.load_records()
-        records.append(new_record)
-        return self.save_records(records)
-
-
-class TestTravelPersistence(unittest.TestCase):
-
+class TestPersistence(unittest.TestCase):
     def setUp(self):
-        """Create a temporary file for safe testing without touching production data."""
-        self.test_dir = tempfile.TemporaryDirectory()
-        self.test_file = os.path.join(self.test_dir.name, "test_records.json")
-        self.manager = TravelPersistenceManager(filepath=self.test_file)
+        self.store = TempStore()
+        self.addCleanup(self.store.cleanup)
 
-        self.sample_data = [
-            {"flight_no": "FA123", "origin": "JNB", "destination": "CPT", "date": "2026-11-15"},
-            {"flight_no": "ZB456", "origin": "DUR", "destination": "JNB", "date": "2026-11-10"}
-        ]
+    def test_save_and_load_round_trip_keeps_types(self):
+        rm = self.store.manager()
+        add_sample_records(rm)
+        rm.save_to_file()
+        lines = self.store.data_file.read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len(lines), 4)                              # one JSON object per line
+        self.assertEqual(json.loads(lines[0])["Type"], "Client")
+        again = self.store.manager()
+        self.assertEqual(again.records, rm.records)
+        self.assertIsInstance(again.records[3]["Client_ID"], int)
 
-    def tearDown(self):
-        """Clean up and remove the temporary directory and files after each test."""
-        self.test_dir.cleanup()
+    def test_missing_file_starts_empty_and_creates_folder(self):
+        rm = RecordManager(filepath=self.store.folder / "new" / "record.jsonl")
+        self.assertEqual((rm.records, rm.load_warnings), ([], []))
+        self.assertTrue((self.store.folder / "new").is_dir())
 
-    def test_save_and_load_records(self):
-        """Test that records saved to disk can be accurately loaded back into memory."""
-        success = self.manager.save_records(self.sample_data)
-        self.assertTrue(success, "Save operation should return True on success.")
+    def test_earlier_format_records_are_upgraded_to_brief_names(self):
+        old = [{"id": 1, "type": "Client", "name": "Abe", "email": "a@b.c", "phone_number": "+27 11 000 0000",
+                "city": "Johannesburg", "address": "100 9th St", "passport_number": "X", "nationality": "SA",
+                "emergency_contact": ""},
+               {"id": 1, "type": "Airline", "company_name": "Emirates (EK)"},
+               {"type": "Flight", "client_id": 1, "airline_id": 1, "date": "2026-11-09",
+                "start_city": "Johannesburg", "end_city": "Moscow"}]
+        self.store.data_file.write_text("".join(json.dumps(r) + "\n" for r in old), encoding="utf-8")
+        rm = self.store.manager()
+        self.assertEqual(rm.load_warnings, [])
+        client, airline, flight = rm.records
+        self.assertEqual(list(client), ["ID", "Type", "Name", "Address Line 1", "Address Line 2", "Address Line 3",
+                                        "City", "State", "Zip Code", "Country", "Phone Number"])
+        self.assertEqual((client["Address Line 1"], client["Country"]), ("100 9th St", ""))
+        self.assertEqual(airline, {"ID": 1, "Type": "Airline", "Company Name": "Emirates (EK)"})
+        self.assertEqual(flight["Date"], "2026-11-09 00:00")
+        self.assertEqual(flight["Start City"], "Johannesburg")
 
-        loaded_data = self.manager.load_records()
-        self.assertEqual(len(loaded_data), 2, "Should load exactly 2 records.")
-        self.assertEqual(loaded_data[0]["flight_no"], "FA123")
-        self.assertEqual(loaded_data[1]["destination"], "JNB")
+    def test_blank_lines_are_ignored(self):
+        self.store.data_file.write_text('{"ID": 1, "Type": "Airline", "Company Name": "A"}\n\n', encoding="utf-8")
+        self.assertEqual(len(self.store.manager().records), 1)
 
-    def test_load_nonexistent_file(self):
-        """Test that loading from a missing file path gracefully returns an empty list instead of crashing."""
-        non_existent_manager = TravelPersistenceManager(filepath="non_existent_path.json")
-        records = non_existent_manager.load_records()
-        self.assertEqual(records, [], "Should return an empty list if file does not exist.")
+    def test_damaged_file_is_backed_up_and_program_starts_empty(self):
+        self.store.data_file.write_text("{ not json", encoding="utf-8")
+        with self.assertLogs("record.record", level="ERROR"):
+            rm = self.store.manager()
+        self.assertEqual(rm.records, [])
+        self.assertEqual(len(rm.load_warnings), 1)
+        backups = list(self.store.folder.glob("record.jsonl.corrupt-*"))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_text(encoding="utf-8"), "{ not json")
+        self.assertIn(backups[0].name, rm.load_warnings[0])
 
-    def test_append_record(self):
-        """Test appending a new record preserves existing saved data."""
-        # Save initial data
-        self.manager.save_records(self.sample_data)
+    def test_line_that_is_not_a_record_counts_as_damage(self):
+        self.store.data_file.write_text('{"ID": 1, "Type": "Airline", "Company Name": "A"}\n[1, 2]\n',
+                                        encoding="utf-8")
+        rm = self.store.manager()
+        self.assertEqual(rm.records, [])
+        self.assertIn("line 2", rm.load_warnings[0])
 
-        # Append a new record
-        new_entry = {"flight_no": "AA111", "origin": "PLZ", "destination": "JNB", "date": "2026-11-12"}
-        self.manager.append_record(new_entry)
+    def test_unreadable_file_still_starts(self):
+        self.store.data_file.write_text("x", encoding="utf-8")
+        with mock.patch("record.record.open", side_effect=PermissionError("denied")), \
+                mock.patch("record.record.shutil.copy2", side_effect=OSError("no space")):
+            rm = self.store.manager()
+        self.assertEqual(rm.records, [])
+        self.assertNotIn("kept as", rm.load_warnings[0])          # backup failed and says nothing false
 
-        # Verify total count is now 3 and new record is present
-        loaded_data = self.manager.load_records()
-        self.assertEqual(len(loaded_data), 3)
-        self.assertEqual(loaded_data[2]["flight_no"], "AA111")
+    def test_failed_save_raises_and_keeps_the_old_file(self):
+        rm = self.store.manager()
+        add_sample_records(rm)
+        rm.save_to_file()
+        before = self.store.data_file.read_text(encoding="utf-8")
+        rm.records.clear()
+        with mock.patch("record.record.os.replace", side_effect=OSError("disk full")), \
+                self.assertRaises(RecordStorageError) as caught:
+            rm.save_to_file()
+        self.assertIn("disk full", str(caught.exception))
+        self.assertEqual(self.store.data_file.read_text(encoding="utf-8"), before)
+        self.assertEqual([p.name for p in self.store.folder.iterdir()], ["record.jsonl"])   # no temp left
 
-    def test_corrupted_file_handling(self):
-        """Test that invalid/corrupted JSON data is handled gracefully without raising exceptions."""
-        # Write malformed JSON text to the test file
-        with open(self.test_file, 'w', encoding='utf-8') as f:
-            f.write("{ invalid json formatting ...")
+    def test_default_location_is_the_configured_data_file(self):
+        self.assertEqual(RecordManager.__init__.__defaults__[0], config.DATA_FILE)
+        self.assertEqual(config.DATA_FILE.name, "record.jsonl")
 
-        # Loading should catch the JSONDecodeError and return an empty list safely
-        loaded_data = self.manager.load_records()
-        self.assertEqual(loaded_data, [], "Should recover gracefully from corrupted files by returning an empty list.")
+    def test_save_creates_missing_folder(self):
+        rm = RecordManager(filepath=self.store.folder / "a" / "b.jsonl")
+        os.rmdir(self.store.folder / "a")
+        rm.save_to_file()
+        self.assertTrue((self.store.folder / "a" / "b.jsonl").exists())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
