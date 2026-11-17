@@ -45,4 +45,4 @@
 
 | ID | Requirement – the system shall… | Source | Verification |
 |---|---|---|---|
-| NFR-14 | keep all personal data (names, emails, phone numbers, passport numbers) on the user's computer, and keep caches and local settings out of version control. | Derived | Inspection |
+| NFR-14 | keep all personal data (names, addresses, phone numbers) on the user's computer, and keep caches and local settings out of version control. | Derived | Inspection |

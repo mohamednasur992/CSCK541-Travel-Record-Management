@@ -26,15 +26,18 @@ Verification values:
 
 ## Known gaps against the requirements
 
-These are listed so the documents stay honest. Each has a requirement that
-describes the intended behaviour.
+The earlier gaps have been closed in the code:
 
-1. New records are written to disk when the application closes (and after an
-   update or delete), not immediately after each create (FR-22).
-2. A damaged records file is not copied to a backup before the program starts
-   with an empty list (FR-24).
-3. Unique IDs for clients and airlines are enforced by the forms; the
-   `RecordManager` class itself does not reject a duplicate ID (FR-17).
-4. Only `test_flight_booking_rule.py` tests the real application code. The other
-   test files exercise small stand-in classes defined inside the test files
-   (NFR-12).
+1. Records are written after every create, update and delete, and again on exit (FR-22).
+2. A damaged records file is copied to `record.jsonl.corrupt-<date-time>` before the program starts with
+   an empty list (FR-24).
+3. `RecordManager` itself rejects a duplicate client or airline ID (`DuplicateRecordError`) (FR-17).
+4. Every test file now tests the real application code (NFR-12), and every module has unit tests.
+5. Records use exactly the field names of the assignment brief (FR-03 to FR-05): the client fields are
+   `Address Line 1-3`, `State`, `Zip Code` and `Country` (email, passport number, nationality and
+   emergency contact were removed), and a flight's `Date` holds a date **and time**. Files saved by the
+   earlier version are upgraded on load (FR-26).
+
+The requirement wording still describes the earlier Tkinter interface (tabs, status bar, Tkinter and
+Pillow in NFR-04/NFR-05/NFR-11). The application now uses the pywebview HTML interface; the behaviour
+the requirements ask for is unchanged.
