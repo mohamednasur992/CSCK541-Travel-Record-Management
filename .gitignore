@@ -11,13 +11,18 @@ venv/
 .AppleDouble
 __MACOSX/
 
-# IDE files
+# IDE and assistant files
 .idea/
 .vscode/
 
 # Test files
 .pytest_cache/
 .coverage
+htmlcov/
 
-# Display preferences written by the HTML interface
+# Written by the running program
+logs/
 src/record/settings.json
+src/record/*.corrupt-*
+src/record/.*.tmp
+src/record/.settings-*.tmp

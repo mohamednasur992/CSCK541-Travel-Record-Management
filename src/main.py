@@ -1,47 +1,57 @@
-"""Main entry point for the Specialist Travel Agent Record Management System."""
-import sys
-import os
-import atexit
+"""Main entry point for the Specialist Travel Agent Record Management System.
 
-# Ensure 'src' is in Python's path
+Run with ``python src/main.py``. Start-up checks for existing records,
+opens the HTML interface, and saves every record again when the program
+ends, however it ends (window closed, Ctrl+C or an unexpected error).
+"""
+
+import logging
+import os
+import sys
+
+# Allow "python src/main.py" from the project root as well as from src/.
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 if CURRENT_DIR not in sys.path:
     sys.path.insert(0, CURRENT_DIR)
 
 # pylint: disable=wrong-import-position, import-error
-from record.record import RecordManager
+import config
+from app_logging import setup_logging
 from gui.launcher import run, webview_available
+from record.errors import RecordStorageError
+from record.record import RecordManager
+
+logger = logging.getLogger("main")
 
 
-def main():
-    """Initialise the data manager, register the exit hook and open the UI."""
-    print("Initialising Specialist Travel Agent Record Management System...")
+def main(data_file=config.DATA_FILE, log_file=config.LOG_FILE):
+    """Load the records, open the interface and save on exit; return an exit code."""
+    log_path = setup_logging(log_file=log_file)
+    logger.info("Starting %s.%s", config.APP_NAME, f" Log file: {log_path}" if log_path else "")
 
     if not webview_available():
-        print(
-            "The HTML interface needs the 'pywebview' package.\n"
-            "Install it with:  pip install -r requirements.txt",
-            file=sys.stderr,
-        )
-        return 2
+        logger.error("The HTML interface needs the 'pywebview' package. "
+                     "Install it with:  pip install -r requirements.txt")
+        return config.EXIT_MISSING_DEPENDENCY
 
-    # Check for and load existing records on startup
-    db_path = os.path.join(CURRENT_DIR, "record", "record.jsonl")
-    manager = RecordManager(filepath=db_path)
-    print(f"Startup check complete: Loaded {len(manager.records)} record(s) from storage.")
-
-    # Register an exit handler to automatically save records when the app closes
-    atexit.register(manager.save_to_file)
-
+    manager = RecordManager(filepath=data_file)       # start-up check for existing records
+    exit_code = config.EXIT_OK
     try:
-        return run(manager)
+        exit_code = run(manager, warnings=manager.load_warnings)
     except KeyboardInterrupt:
-        print("\nShutdown signal received.")
-        return 0
+        logger.info("Shutdown requested from the keyboard.")
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("The program stopped because of an unexpected error.")
+        exit_code = config.EXIT_ERROR
     finally:
-        # Ensure final save execution on exit
-        manager.save_to_file()
-        print("Records successfully saved to file system. Goodbye!")
+        # Final save, whatever happened above (the window also saves when it closes).
+        try:
+            manager.save_to_file()
+        except RecordStorageError as exc:
+            logger.error("Records could not be saved on exit: %s", exc)
+            exit_code = config.EXIT_ERROR
+    logger.info("Goodbye.")
+    return exit_code
 
 
 if __name__ == "__main__":
