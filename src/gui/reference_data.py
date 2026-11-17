@@ -1,4 +1,7 @@
-"""Shared reference data for the Travel Record Management System."""
+"""Reference data offered as suggestions in the forms (airlines, cities, countries).
+
+The lists are suggestions only: every form field also accepts free text.
+"""
 
 
 # Major international and regional airlines covering Africa, Asia,
@@ -141,73 +144,70 @@ WORLD_CITIES = (
 )
 
 
-# Default nationality suggestions based on the selected city.
-#
-# These values provide a convenient starting point only. The nationality
-# field remains editable because a client's city does not necessarily
-# determine the client's nationality.
-CITY_TO_NATIONALITY = {
+# Country suggested when the user types a client's city. The suggestion
+# only fills an empty Country field; the user can always change it.
+CITY_TO_COUNTRY = {
     # Africa
-    "Accra": "Ghanaian",
-    "Cairo": "Egyptian",
-    "Cape Town": "South African",
-    "Casablanca": "Moroccan",
-    "Gaborone": "Motswana",
-    "Johannesburg": "South African",
-    "Lagos": "Nigerian",
-    "Nairobi": "Kenyan",
-    "Pretoria": "South African",
+    "Accra": "Ghana",
+    "Cairo": "Egypt",
+    "Cape Town": "South Africa",
+    "Casablanca": "Morocco",
+    "Gaborone": "Botswana",
+    "Johannesburg": "South Africa",
+    "Lagos": "Nigeria",
+    "Nairobi": "Kenya",
+    "Pretoria": "South Africa",
 
     # Asia
-    "Bangkok": "Thai",
-    "Beijing": "Chinese",
-    "Delhi": "Indian",
-    "Hong Kong": "Hong Konger",
-    "Jakarta": "Indonesian",
-    "Kuala Lumpur": "Malaysian",
-    "Manila": "Filipino",
-    "Mumbai": "Indian",
-    "Seoul": "South Korean",
-    "Shanghai": "Chinese",
-    "Singapore": "Singaporean",
-    "Tokyo": "Japanese",
+    "Bangkok": "Thailand",
+    "Beijing": "China",
+    "Delhi": "India",
+    "Hong Kong": "Hong Kong",
+    "Jakarta": "Indonesia",
+    "Kuala Lumpur": "Malaysia",
+    "Manila": "Philippines",
+    "Mumbai": "India",
+    "Seoul": "South Korea",
+    "Shanghai": "China",
+    "Singapore": "Singapore",
+    "Tokyo": "Japan",
 
     # Middle East
-    "Abu Dhabi": "Emirati",
-    "Doha": "Qatari",
-    "Dubai": "Emirati",
-    "Istanbul": "Turkish",
-    "Jeddah": "Saudi Arabian",
-    "Riyadh": "Saudi Arabian",
+    "Abu Dhabi": "United Arab Emirates",
+    "Doha": "Qatar",
+    "Dubai": "United Arab Emirates",
+    "Istanbul": "Turkey",
+    "Jeddah": "Saudi Arabia",
+    "Riyadh": "Saudi Arabia",
 
     # Europe
-    "Amsterdam": "Dutch",
-    "Barcelona": "Spanish",
-    "Berlin": "German",
-    "Dublin": "Irish",
-    "Frankfurt": "German",
-    "Lisbon": "Portuguese",
-    "London": "British",
-    "Madrid": "Spanish",
-    "Paris": "French",
-    "Rome": "Italian",
-    "Vienna": "Austrian",
-    "Zurich": "Swiss",
+    "Amsterdam": "Netherlands",
+    "Barcelona": "Spain",
+    "Berlin": "Germany",
+    "Dublin": "Ireland",
+    "Frankfurt": "Germany",
+    "Lisbon": "Portugal",
+    "London": "United Kingdom",
+    "Madrid": "Spain",
+    "Paris": "France",
+    "Rome": "Italy",
+    "Vienna": "Austria",
+    "Zurich": "Switzerland",
 
     # North America
-    "Chicago": "American",
-    "Los Angeles": "American",
-    "Mexico City": "Mexican",
-    "New York": "American",
-    "Toronto": "Canadian",
-    "Vancouver": "Canadian",
+    "Chicago": "United States",
+    "Los Angeles": "United States",
+    "Mexico City": "Mexico",
+    "New York": "United States",
+    "Toronto": "Canada",
+    "Vancouver": "Canada",
 
     # South America
-    "Bogota": "Colombian",
-    "Buenos Aires": "Argentinian",
-    "Sao Paulo": "Brazilian",
+    "Bogota": "Colombia",
+    "Buenos Aires": "Argentina",
+    "Sao Paulo": "Brazil",
 
     # Oceania
-    "Auckland": "New Zealander",
-    "Sydney": "Australian",
+    "Auckland": "New Zealand",
+    "Sydney": "Australia",
 }

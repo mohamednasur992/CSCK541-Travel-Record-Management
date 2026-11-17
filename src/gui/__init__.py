@@ -1,1 +1,1 @@
-"""GUI package for the Specialist Travel Agent Record Management System."""
+"""HTML user interface: the pywebview launcher, the JavaScript bridge and the static page."""
