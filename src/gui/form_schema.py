@@ -10,6 +10,10 @@ from record.schema import AIRLINE, CLIENT, FLIGHT
 
 ALL_FIELDS = "All fields"      # search-field choice meaning "match any field"
 
+# City names: letters, spaces, hyphens, apostrophes and full stops, 2 to 60 characters.
+CITY_MIN_LENGTH = 2
+CITY_MAX_LENGTH = 60
+
 # Page field name -> stored record key, per record type. The page shows the
 # brief's field names, which are also the stored keys, so this maps each name
 # to itself; it remains the one list of which fields each form has.
@@ -30,7 +34,7 @@ FIELD_SPECS = {
         ("Address Line 1", "Address Line 1", STR, True, 100, ""),
         ("Address Line 2", "Address Line 2", STR, False, 100, "optional"),
         ("Address Line 3", "Address Line 3", STR, False, 100, "optional"),
-        ("City", "City", STR, True, 100, ""),
+        ("City", "City", STR, True, CITY_MAX_LENGTH, ""),
         ("State", "State / Province", STR, False, 100, "optional"),
         ("Zip Code", "Zip / Postal Code", STR, False, 20, "optional"),
         ("Country", "Country", STR, True, 100, "suggested from city"),
@@ -44,8 +48,8 @@ FIELD_SPECS = {
         ("Client_ID", "Client", INT, True, 9, "must already exist"),
         ("Airline_ID", "Airline", INT, True, 9, "must already exist"),
         ("Date", "Departure Date and Time", DATE, True, 16, schema.DATE_FORMAT_HINT),
-        ("Start City", "Start City", STR, True, 100, ""),
-        ("End City", "End City", STR, True, 100, ""),
+        ("Start City", "Start City", STR, True, CITY_MAX_LENGTH, ""),
+        ("End City", "End City", STR, True, CITY_MAX_LENGTH, ""),
     ),
 }
 

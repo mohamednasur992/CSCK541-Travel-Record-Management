@@ -29,7 +29,8 @@ from datetime import date, datetime
 from pathlib import Path
 
 import config
-from gui.form_schema import ALL_FIELDS, FIELD_MAP, FIELD_SPECS, FORM_ROWS, INT, LINK_FIELDS
+from gui.form_schema import (ALL_FIELDS, CITY_MIN_LENGTH, FIELD_MAP, FIELD_SPECS, FORM_ROWS, INT,
+                             LINK_FIELDS)
 from gui.preferences import PreferenceStore
 from gui.reference_data import CITY_TO_COUNTRY, WORLD_AIRLINES, WORLD_CITIES
 from record import schema
@@ -41,6 +42,9 @@ logger = logging.getLogger(__name__)
 
 PHONE_ALLOWED = re.compile(r"^\+?[0-9 ()\-]+$")   # digits, spaces, ( ) - and a leading +
 PHONE_MIN_DIGITS = 7
+# A city name is words of letters (any alphabet) joined by spaces, hyphens, apostrophes or full
+# stops, for example "Saint-Étienne", "St. John's" or "Xi'an"; digits and symbols are refused.
+CITY_ALLOWED = re.compile(r"^[^\W\d_]+(?:[ .'’\-]+[^\W\d_]+)*\.?$")
 
 UNEXPECTED_ERROR = ("Something went wrong: {error}. Nothing else was changed. "
                     "Details were written to the log file.")
@@ -121,8 +125,19 @@ class WebApi:  # pylint: disable=too-many-public-methods, too-many-instance-attr
             row["upcoming"] = str(record[schema.DATE]) >= self._today().isoformat()
         else:
             row["key"] = record[schema.ID]
-            row["flights"] = len(self._flights_for(schema.LINK_KEY[record_type], record[schema.ID]))
+            row["flight_list"] = self._flight_list(record_type, record[schema.ID])
+            row["flights"] = len(row["flight_list"])
         return row
+
+    def _flight_list(self, record_type, record_id):
+        """The flights that refer to a client or airline, earliest first, for the page to list."""
+        flights = self._flights_for(schema.LINK_KEY[record_type], record_id)
+        other_type, other_key = ((AIRLINE, schema.AIRLINE_ID) if record_type == CLIENT
+                                 else (CLIENT, schema.CLIENT_ID))
+        return [{"key": self._flight_key(f), "Date": f[schema.DATE],
+                 "Start City": f[schema.START_CITY], "End City": f[schema.END_CITY],
+                 "with": self._name_of(other_type, f[other_key])}
+                for f in sorted(flights, key=lambda f: str(f[schema.DATE]))]
 
     @staticmethod
     def _to_record(record_type, data):
@@ -172,7 +187,21 @@ class WebApi:  # pylint: disable=too-many-public-methods, too-many-instance-attr
         validators[record_type](record, errors, editing_key)
         return record, errors
 
+    @staticmethod
+    def _validate_cities(record, errors, fields):
+        """Check city names: long enough, and letters with simple joining punctuation only."""
+        for page in fields:
+            value = record[FIELD_MAP[record[schema.TYPE]][page]]
+            if not value or page in errors:
+                continue
+            if len(value) < CITY_MIN_LENGTH:
+                errors[page] = f"must be at least {CITY_MIN_LENGTH} letters"
+            elif not CITY_ALLOWED.match(value):
+                errors[page] = ("use letters, spaces, hyphens, apostrophes and full stops only, "
+                                "for example Saint-Étienne")
+
     def _validate_client(self, record, errors, editing_key):
+        self._validate_cities(record, errors, ("City",))
         phone = record[schema.PHONE_NUMBER]
         if phone and "Phone Number" not in errors and (
                 not PHONE_ALLOWED.match(phone) or sum(c.isdigit() for c in phone) < PHONE_MIN_DIGITS):
@@ -194,6 +223,7 @@ class WebApi:  # pylint: disable=too-many-public-methods, too-many-instance-attr
             errors["ID"] = f"an airline with ID {record[schema.ID]} already exists"
 
     def _validate_flight(self, record, errors, editing_key):
+        self._validate_cities(record, errors, ("Start City", "End City"))
         for page, record_type in LINK_FIELDS.items():
             key = FIELD_MAP[FLIGHT][page]
             if page not in errors and self._rm.get_record_by_id(

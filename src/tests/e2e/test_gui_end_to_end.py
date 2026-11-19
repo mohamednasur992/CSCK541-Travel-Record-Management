@@ -8,7 +8,7 @@ Skipped when pywebview is not installed, when there is no display (Linux
 without ``DISPLAY``) or when ``RMS_SKIP_GUI=1`` is set.
 
 Requirements covered: FR-06, FR-07, FR-08, FR-09, FR-10, FR-14, FR-15, FR-16,
-FR-18, FR-20, FR-21, FR-22, FR-27, NFR-01, NFR-02, NFR-03, NFR-14 (see
+FR-18, FR-20, FR-21, FR-22, FR-27, FR-30, NFR-01, NFR-02, NFR-03, NFR-14 (see
 ``docs/requirements/03_Test_Traceability.md``).
 """
 
@@ -98,6 +98,9 @@ class TestGuiEndToEnd(unittest.TestCase):
     def test_nfr03_a_phone_error_explains_how_to_fix_it(self):
         self.check("invalid_phone_number_error_explains_the_fix")
 
+    def test_fr16_a_city_with_symbols_is_rejected_beside_the_field(self):
+        self.check("invalid_city_is_rejected_beside_the_field")
+
     def test_fr16_the_same_start_and_end_city_is_flagged_while_typing(self):
         self.check("same_start_and_end_city_is_flagged_while_typing")
 
@@ -110,6 +113,9 @@ class TestGuiEndToEnd(unittest.TestCase):
 
     def test_fr08_table_columns_sort_both_ways(self):
         self.check("table_columns_sort_both_ways")
+
+    def test_fr30_a_client_card_lists_its_flights_and_opens_one(self):
+        self.check("client_card_lists_its_flights_and_opens_one")
 
     def test_fr09_a_client_can_be_edited_but_its_id_is_locked(self):
         self.check("edit_a_client_with_the_id_locked")

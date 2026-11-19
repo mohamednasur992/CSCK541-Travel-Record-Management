@@ -6,7 +6,7 @@ This folder holds the system requirements and the tests that verify them.
 
 | File | Contents |
 |---|---|
-| [01_Functional_Requirements.md](01_Functional_Requirements.md) | What the system shall do (FR-01 … FR-29) |
+| [01_Functional_Requirements.md](01_Functional_Requirements.md) | What the system shall do (FR-01 … FR-30) |
 | [02_Non_Functional_Requirements.md](02_Non_Functional_Requirements.md) | How well, and under which constraints (NFR-01 … NFR-16) |
 | [03_Test_Traceability.md](03_Test_Traceability.md) | Which tests verify which requirement |
 
@@ -27,7 +27,7 @@ Verification values:
 
 ## Status
 
-All 29 functional and 16 non-functional requirements are implemented and verified by the automated
+All 30 functional and 16 non-functional requirements are implemented and verified by the automated
 tests (see `03_Test_Traceability.md`). Run them with:
 
 ```bash

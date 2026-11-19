@@ -40,7 +40,7 @@ when `pywebview` is missing, when there is no display, or when `RMS_SKIP_GUI=1` 
 | FR-13 suggestions, free text accepted | `test_fr_operations`, `test_travel_autocomplete` | | | |
 | FR-14 country suggestion | `test_fr_operations`, `test_travel_autocomplete` | | | `test_fr14_*` |
 | FR-15 feedback for every action | `test_fr_operations` (TestFeedback) | | | `test_fr06_fr14_fr15_*` |
-| FR-16 field validation | `test_fr_validation_integrity` (TestFieldValidation), `test_travel_error_handling` | | `test_error_injection` (random invalid forms) | `test_fr16_*`, `test_nfr03_*` |
+| FR-16 field validation, city names | `test_fr_validation_integrity` (TestFieldValidation, TestCityNames), `test_travel_error_handling` | | `test_error_injection` (random invalid forms) | `test_fr16_*` (including the city rule), `test_nfr03_*` |
 | FR-17 next ID, duplicate IDs | `test_fr_validation_integrity` (TestUniqueIds), `test_travel_records` | | `test_error_injection` (parallel creates) | |
 | FR-18 airline names unique | `test_fr_validation_integrity` (TestAirlineNames) | | | `test_fr06_create_an_airline_*` |
 | FR-19 flight needs real client and airline | `test_fr_validation_integrity` (TestFlightReferences) | | | |
@@ -53,6 +53,7 @@ when `pywebview` is missing, when there is no display, or when `RMS_SKIP_GUI=1` 
 | FR-26 reload and upgrade | `test_travel_persistence` | `test_fr_persistence_files` (TestReloadAndUpgrade) | | |
 | FR-28 undo the last delete | `test_fr_operations` (TestDelete) | `test_workflows` | | `test_fr10_delete_asks_first_*` |
 | FR-29 display preferences | `test_schema_and_config` (TestPreferences) | `test_workflows` (TestPreferencesAcrossRestarts) | `test_error_injection` | `test_display_settings_*` |
+| FR-30 flights listed on clients and airlines | `test_fr_operations` (TestLinkedFlights) | | | `test_fr30_*`, `test_fr20_*` |
 | FR-27 logo | | `test_fr_persistence_files` (TestLogo) | | `test_fr27_logo_is_shown` |
 
 ## Non-functional requirements

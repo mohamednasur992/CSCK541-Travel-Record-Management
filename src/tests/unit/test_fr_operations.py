@@ -179,6 +179,64 @@ class TestFlightIdentity(StoreTestCase):
         self.assertEqual(self.api.get("Flight", first)["record"]["End City"], "Paris")
 
 
+class TestLinkedFlights(StoreTestCase):
+    """FR-30 (RT-18): a client or airline lists the individual flights that refer to it."""
+
+    def setUp(self):
+        super().setUp()
+        self.seed()                                                        # London -> Paris, 2026-12-01 09:30
+        self.create("Airline", {"ID": "2", "Company Name": "Air France (AF)"})
+        self.create("Flight", {**FLIGHT_FORM, "Airline_ID": "2", "Date": "2026-12-01 14:00",
+                               "Start City": "Paris", "End City": "Rome"})
+        self.create("Client", {**CLIENT_FORM, "ID": "2", "Name": "Alan Turing"})
+        self.create("Flight", {**FLIGHT_FORM, "Client_ID": "2", "Airline_ID": "2", "Date": "2026-11-30 06:15",
+                               "Start City": "Leeds", "End City": "Oslo"})
+
+    def rows(self, record_type):
+        return {row["ID"]: row for row in self.api.snapshot()["records"][record_type]}
+
+    def test_a_client_lists_its_flights_earliest_first_with_the_airline_name(self):
+        flights = self.rows("Client")[1]["flight_list"]
+        self.assertEqual([(f["Date"], f["Start City"], f["End City"], f["with"]) for f in flights],
+                         [("2026-12-01 09:30", "London", "Paris", "British Airways (BA)"),
+                          ("2026-12-01 14:00", "Paris", "Rome", "Air France (AF)")])
+        self.assertEqual(self.rows("Client")[1]["flights"], 2)
+
+    def test_an_airline_lists_its_flights_with_the_client_name(self):
+        flights = self.rows("Airline")[1]["flight_list"]
+        self.assertEqual([(f["Start City"], f["with"]) for f in flights], [("London", "Ada Lovelace")])
+        self.assertEqual([(f["Start City"], f["with"]) for f in self.rows("Airline")[2]["flight_list"]],
+                         [("Leeds", "Alan Turing"), ("Paris", "Ada Lovelace")])
+
+    def test_a_record_without_flights_has_an_empty_list(self):
+        self.create("Airline", {"ID": "3", "Company Name": "Unused Air"})
+        row = self.rows("Airline")[3]
+        self.assertEqual((row["flights"], row["flight_list"]), (0, []))
+
+    def test_every_listed_flight_can_be_opened_with_its_key(self):
+        for row in self.rows("Client").values():
+            for flight in row["flight_list"]:
+                result = self.api.get("Flight", flight["key"])
+                self.assertTrue(result["ok"], flight)
+                self.assertEqual((result["record"]["Start City"], result["record"]["End City"]),
+                                 (flight["Start City"], flight["End City"]))
+
+    def test_a_blocked_delete_returns_the_flights_to_show_the_user(self):
+        for record_type, record_id, count in (("Client", 1, 2), ("Airline", 1, 1)):
+            check = self.api.delete_check(record_type, record_id)
+            self.assertFalse(check["allowed"])
+            self.assertEqual(len(check["record"]["flight_list"]), count)
+            self.assertEqual(check["linked_flights"], count)
+
+    def test_the_list_follows_changes(self):
+        key = self.rows("Client")[1]["flight_list"][1]["key"]
+        self.assertTrue(self.api.delete("Flight", key)["ok"])
+        self.assertEqual(len(self.rows("Client")[1]["flight_list"]), 1)
+        self.assertEqual([f["Start City"] for f in self.rows("Airline")[2]["flight_list"]], ["Leeds"])
+        self.api.update("Client", 1, {**CLIENT_FORM, "Name": "Ada King"})
+        self.assertEqual(self.rows("Airline")[1]["flight_list"][0]["with"], "Ada King")
+
+
 class TestChoicesAndSuggestions(StoreTestCase):
     """FR-12, FR-13, FR-14: drop-down choices and suggestions."""
 

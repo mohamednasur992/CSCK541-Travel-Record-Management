@@ -135,7 +135,7 @@ From the project root, with the virtual environment active (see *System Setup*):
 python -m unittest discover -s src/tests -t src
 ```
 
-This runs every test (260 tests, about 21 seconds, including the end-to-end GUI tests that open the real
+This runs every test (276 tests, about 21 seconds, including the end-to-end GUI tests that open the real
 window). Without activating the environment, call its Python directly:
 
 ```bash

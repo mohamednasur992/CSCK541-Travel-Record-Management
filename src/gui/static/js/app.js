@@ -40,6 +40,7 @@
     date: '',
     busy: false,
     prefs: { theme: 'system', contrast: 'system', effects: 'system', density: 'comfortable', panel_width: 440 },
+    expanded: new Set(),     // client/airline cards whose flight list is open, as "Client:3"
     undo: null,              // { view, label } while the latest change is an undoable delete
     scroll: {},              // per-view scroll positions, restored when switching back
     sheetOpen: false,
@@ -417,14 +418,34 @@
           `<span class="tier-indicator">#${esc(r.ID)}</span></div>` +
           `<span class="entity-sub">${esc(r['Address Line 1'] || 'No address')}</span>` +
           `<span class="entity-sub">${esc(place || 'No city')}</span>` +
-          `<div class="entity-meta"><span>Phone: <strong class="tabular-nums">${esc(r['Phone Number'] || '—')}</strong></span><span><strong>${flights}</strong></span></div></div>`;
+          `<div class="entity-meta"><span>Phone: <strong class="tabular-nums">${esc(r['Phone Number'] || '—')}</strong></span><span><strong>${flights}</strong></span></div>` +
+          `${flightListHtml(view, r)}</div>`;
       }
       return `<div class="entity-card${selected ? ' selected' : ''}" role="listitem" tabindex="0" data-key="${esc(r.ID)}" aria-selected="${selected}">` +
         `<div class="entity-title"><span style="display:flex; align-items:center; gap:10px;"><span class="option-airline-badge" style="background:${colourFor(r['Company Name'])}22; color:${colourFor(r['Company Name'])}">${esc(initials(r['Company Name']))}</span><strong>${esc(r['Company Name'])}</strong></span>` +
         `<span class="tier-indicator">#${esc(r.ID)}</span></div>` +
         `<div class="entity-meta"><span>Flights booked: <strong class="tabular-nums">${r.flights}</strong></span>` +
-        `<span class="spec-badge">${r.flights ? 'IN USE' : 'NO FLIGHTS'}</span></div></div>`;
+        `<span class="spec-badge">${r.flights ? 'IN USE' : 'NO FLIGHTS'}</span></div>${flightListHtml(view, r)}</div>`;
     }).join('');
+  }
+  /** Expandable list of the flights that refer to a client or airline (each opens that flight). */
+  function flightListHtml(view, r) {
+    if (!r.flights) return '';
+    const id = `${view}:${r.ID}`;
+    const items = r.flight_list.map((f) =>
+      `<li><button type="button" class="flight-link" data-flight-key='${esc(JSON.stringify(f.key))}' title="Open this flight">` +
+      `<span class="tabular-nums">${esc(f.Date)}</span><span>${esc(f['Start City'])} → ${esc(f['End City'])}</span>` +
+      `<span class="flight-with">${esc(f.with)}</span></button></li>`).join('');
+    return `<details class="card-flights" data-flights="${esc(id)}"${state.expanded.has(id) ? ' open' : ''}>` +
+      `<summary>Show ${r.flights} flight${r.flights === 1 ? '' : 's'}</summary><ul class="flight-list">${items}</ul></details>`;
+  }
+  /** Go to the Flights view and open one flight (used by the lists on client and airline cards). */
+  async function openFlight(key) {
+    await setView('Flight');
+    if (state.view !== 'Flight') return;                  // the user kept editing another form
+    if (state.search.Flight.text.trim() || state.search.Flight.field !== 'All fields') resetSearch('Flight');
+    await selectRecord('Flight', key);
+    revealSelected('Flight');
   }
 
   /* ----------------------------------------------- summary and route */
@@ -1008,8 +1029,13 @@
     }
     if (!check.allowed) {
       const article = view === 'Airline' ? 'an' : 'a';
+      const rows = (r.flight_list || []).map((f) =>
+        `<li class="flight-row"><span class="tabular-nums">${esc(f.Date)}</span><span>${esc(f['Start City'])} → ${esc(f['End City'])}</span>` +
+        `<span class="flight-with">${esc(f.with)}</span></li>`).join('');
       await dialog({ kind: 'warning', title: 'Cannot delete',
-        message: `${what[0].toUpperCase() + what.slice(1)} has ${check.linked_flights} flight(s).\n\nDelete or change those flights first, so that no flight is left without ${article} ${view.toLowerCase()}.`,
+        html: `<p class="dialog-message">${esc(what[0].toUpperCase() + what.slice(1))} has ${check.linked_flights} flight(s):</p>` +
+          `<ul class="flight-list dialog-flights">${rows}</ul>` +
+          `<p class="dialog-message">Delete or change those flights first, so that no flight is left without ${article} ${view.toLowerCase()}.</p>`,
         buttons: [{ label: 'OK', value: 'ok', style: 'primary', focus: true }] });
       banner('warning', 'Delete blocked', `${check.linked_flights} flight(s) still refer to this ${view.toLowerCase()}.`);
       toast('warning', `${view} not deleted`, 'It still has flights.');
@@ -1201,10 +1227,20 @@
       if (tr) selectRecord('Flight', JSON.parse(tr.dataset.key));
     });
     ['Client', 'Airline'].forEach((view) => {
-      $(`#${view.toLowerCase()}Cards`).addEventListener('click', (e) => {
+      const grid = $(`#${view.toLowerCase()}Cards`);
+      grid.addEventListener('click', (e) => {
+        const link = e.target.closest('.flight-link');
+        if (link) { e.stopPropagation(); openFlight(JSON.parse(link.dataset.flightKey)); return; }
+        if (e.target.closest('.card-flights')) return;      // opening the list does not select the card
         const card = e.target.closest('[data-key]');
         if (card) selectRecord(view, Number(card.dataset.key));
       });
+      // "toggle" does not bubble, so listen while it travels down; remember what is open across redraws.
+      grid.addEventListener('toggle', (e) => {
+        const id = e.target.dataset && e.target.dataset.flights;
+        if (!id) return;
+        if (e.target.open) state.expanded.add(id); else state.expanded.delete(id);
+      }, true);
     });
     $$('#flightTable th.sortable').forEach((th) => {
       const sort = () => {
@@ -1257,6 +1293,7 @@
       return;
     }
     if (isTyping(document.activeElement)) return;
+    if (document.activeElement && document.activeElement.closest && document.activeElement.closest('.card-flights')) return;
     if (e.key === '/') { e.preventDefault(); $(`#search-${state.view}`).focus(); return; }
     const row = document.activeElement && document.activeElement.closest && document.activeElement.closest('tr[data-key], .entity-card[data-key]');
     if (row) {

@@ -71,6 +71,74 @@ class TestFieldValidation(StoreTestCase):
         self.assertEqual(len(result["messages"]), len(result["errors"]))
 
 
+class TestCityNames(StoreTestCase):
+    """FR-16 (RT-17): city names are letters with simple joining punctuation, 2 to 60 characters."""
+
+    BAD = ("Dubai@#$%&*!?", "Paris!", "London2", "123", "A", "-Paris", "Paris-", "Rome/Oslo", "<b>Rome</b>",
+           "Lyon; DROP TABLE", "x" * 61, "x" * 100, "'", ".")
+    GOOD = ("Dubai", "São Paulo", "Saint-Étienne", "St. John's", "Xi’an", "Rio de Janeiro", "München", "Zürich",
+            "東京", "Москва", "Ho Chi Minh City", "Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch")
+
+    def setUp(self):
+        super().setUp()
+        self.create("Client", CLIENT_FORM)
+        self.create("Airline", AIRLINE_FORM)
+
+    def test_a_client_city_with_symbols_digits_or_the_wrong_length_is_rejected(self):
+        for city in self.BAD:
+            with self.subTest(city=city[:30]):
+                result = self.api.create("Client", {**CLIENT_FORM, "ID": "2", "City": city})
+                self.assertFalse(result["ok"], city)
+                self.assertIn("City", result["errors"])
+        self.assertEqual(len(self.stored("Client")), 1)
+
+    def test_a_flight_start_or_end_city_is_checked_the_same_way(self):
+        for city in self.BAD:
+            for field, other in (("Start City", "End City"), ("End City", "Start City")):
+                with self.subTest(city=city[:30], field=field):
+                    form = {**FLIGHT_FORM, field: city, other: "Valid Place"}
+                    result = self.api.create("Flight", form)
+                    self.assertFalse(result["ok"], (city, field))
+                    self.assertIn(field, result["errors"])
+        self.assertEqual(self.stored("Flight"), [])
+
+    def test_real_world_city_names_are_accepted(self):
+        for number, city in enumerate(self.GOOD, start=10):
+            with self.subTest(city=city[:30]):
+                self.create("Client", {**CLIENT_FORM, "ID": str(number), "City": city})
+                self.assertEqual(self.api.get("Client", number)["record"]["City"], city)
+
+    def test_the_longest_allowed_name_is_60_characters_and_the_message_says_so(self):
+        self.assertTrue(self.api.create("Client", {**CLIENT_FORM, "ID": "2", "City": "a" * 60})["ok"])
+        result = self.api.create("Client", {**CLIENT_FORM, "ID": "3", "City": "a" * 61})
+        self.assertIn("at most 60", result["errors"]["City"])
+
+    def test_the_message_explains_how_to_fix_a_bad_city(self):
+        message = self.api.create("Client", {**CLIENT_FORM, "ID": "2", "City": "Dubai@#$%&*!?"})["errors"]["City"]
+        self.assertIn("letters", message)
+        self.assertIn("Saint-Étienne", message)
+        self.assertTrue(message[0].isupper() and message.endswith("."))
+
+    def test_updating_a_record_applies_the_same_rule(self):
+        self.assertFalse(self.api.update("Client", 1, {**CLIENT_FORM, "City": "Dubai@#$%"})["ok"])
+        self.assertEqual(self.stored("Client")[0]["City"], "London")
+        self.create("Flight", FLIGHT_FORM)
+        key = self.api.snapshot()["records"]["Flight"][0]["key"]
+        self.assertFalse(self.api.update("Flight", key, {**FLIGHT_FORM, "End City": "Pa$$is"})["ok"])
+        self.assertEqual(self.stored("Flight")[0]["End City"], "Paris")
+
+    def test_the_page_is_told_the_same_length_limit(self):
+        fields = self.api.bootstrap()["fields"]
+        client = {spec["name"]: spec for spec in fields["Client"]}
+        flight = {spec["name"]: spec for spec in fields["Flight"]}
+        self.assertEqual(client["City"]["max_length"], 60)
+        self.assertEqual((flight["Start City"]["max_length"], flight["End City"]["max_length"]), (60, 60))
+
+    def test_cities_already_stored_are_not_re_checked_when_loaded(self):
+        self.rm.add_client(5, "Old", "x", "", "", "Dubai@#$", "", "", "k", "1234567")      # earlier data
+        self.assertEqual(self.api.get("Client", 5)["record"]["City"], "Dubai@#$")
+
+
 class TestUniqueIds(StoreTestCase):
     """FR-17: next free ID suggested; duplicates rejected."""
 

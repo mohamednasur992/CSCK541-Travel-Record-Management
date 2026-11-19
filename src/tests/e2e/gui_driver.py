@@ -235,6 +235,15 @@ def run_checks(driver, record):
         assert "7 digits" in message, message
         assert d.call("count", "#clientCards .entity-card") == 1
 
+    @record("invalid_city_is_rejected_beside_the_field")
+    def _():
+        d.fill("City", "Dubai@#$%&*!?")
+        d.fill("Phone Number", "+44 151 123 4567")
+        d.save()
+        message = d.wait("errorOf", "City")
+        assert "letters" in message, message
+        assert d.call("count", "#clientCards .entity-card") == 1
+
     @record("create_airline_and_reject_duplicate_name")
     def _():
         d.create_airline("British Airways (BA)")
@@ -292,6 +301,17 @@ def run_checks(driver, record):
         d.click('#flightTable th[data-sort="Start City"]')
         assert d.js("document.querySelector('#flightTable th[data-sort=\"Start City\"]').getAttribute('aria-sort')") == "descending"
 
+    @record("client_card_lists_its_flights_and_opens_one")
+    def _():
+        d.open_tab("Client")
+        d.wait("count", "#clientCards .card-flights", expect=1)
+        d.click("#clientCards .card-flights summary")
+        d.wait("count", "#clientCards .card-flights[open] .flight-link", expect=1)
+        assert "London → Paris" in d.call("text", "#clientCards .card-flights")
+        d.click("#clientCards .flight-link")
+        d.wait("count", "#view-Flight:not(.hidden)", expect=1)
+        d.wait("text", "#formTitle", expect="Edit Flight · Ada Lovelace")
+
     @record("edit_a_client_with_the_id_locked")
     def _():
         d.open_tab("Client")
@@ -312,7 +332,8 @@ def run_checks(driver, record):
         d.click("#deleteBtn")
         d.wait("dialogOpen")
         assert d.call("dialogTitle") == "Cannot delete"
-        assert "flight" in d.call("dialogBody").lower()
+        body = d.call("dialogBody")
+        assert "flight" in body.lower() and "London → Paris" in body, body
         d.call("answer", "ok")
         d.settle()
         assert d.call("count", "#clientCards .entity-card") == 2

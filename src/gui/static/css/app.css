@@ -2425,3 +2425,56 @@ body[data-layout="expanded"] .grid-panel { min-height: 0; overflow: hidden; }
 body[data-layout="expanded"] .table-container, body[data-layout="expanded"] .cards-scroll { flex: 1 1 auto; min-height: 0; }
 body[data-layout="expanded"] .table-scroll, body[data-layout="expanded"] .cards-scroll { min-height: 0; overflow-y: auto; }
 body[data-layout="expanded"] .dispatch-panel { min-height: 0; overflow-y: auto; }
+
+
+        /* ---- Flights linked to a client or airline (expandable list on its card, and in the delete dialog) ---- */
+        .card-flights {
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.8rem;
+        }
+        .card-flights summary {
+            cursor: pointer;
+            font-weight: 700;
+            color: var(--accent-primary);
+            padding: 4px 0;
+        }
+        .card-flights summary:focus-visible,
+        .flight-link:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+            border-radius: 6px;
+        }
+        .flight-list {
+            list-style: none;
+            margin: 6px 0 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .flight-link,
+        .flight-row {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+            text-align: left;
+            padding: 6px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-primary);
+            font: inherit;
+            min-height: 32px;
+        }
+        .flight-link { cursor: pointer; }
+        .flight-link:hover { background: var(--bg-card-hover); border-color: var(--accent-primary); }
+        .flight-with { color: var(--text-muted); font-size: 0.75rem; }
+        .dialog-flights { margin: 10px 0; }
+        @media (pointer: coarse) {
+            .flight-link { min-height: 44px; }
+            .card-flights summary { min-height: 44px; display: flex; align-items: center; }
+        }
